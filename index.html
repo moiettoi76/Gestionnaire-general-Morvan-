@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Régie — Gestion Immeuble & Activités</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --charcoal:#1C2430;
+  --charcoal-2:#232D3B;
+  --charcoal-3:#2C3846;
+  --concrete:#EDEAE2;
+  --paper:#FBFAF7;
+  --amber:#E8A33D;
+  --amber-dim:#C98B2E;
+  --slate:#4A6670;
+  --green:#5B8266;
+  --green-bg:#E7EFE5;
+  --brick:#B5533C;
+  --brick-bg:#F7E7E1;
+  --amber-bg:#FBF0DC;
+  --ink:#262420;
+  --ink-soft:#5B564C;
+  --line:#DAD5C8;
+  --line-dark:#3A4554;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(28,36,48,.06), 0 4px 16px rgba(28,36,48,.05);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif; margin:0; letter-spacing:-0.01em;}
+button{font-family:inherit; cursor:pointer;}
+input,select,textarea{font-family:inherit; font-size:14px;}
+a{color:inherit;}
+
+/* ---------- APP SHELL ---------- */
+#app{display:flex; min-height:100vh;}
+
+.sidebar{
+  width:248px; flex-shrink:0;
+  background:var(--charcoal);
+  color:var(--concrete);
+  display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh;
+  background-image:
+    linear-gradient(var(--line-dark) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-dark) 1px, transparent 1px);
+  background-size:24px 24px;
+  background-position: -1px -1px;
+  background-color:var(--charcoal);
+}
+.sidebar-inner{background:linear-gradient(180deg, rgba(28,36,48,0.97), rgba(28,36,48,0.99)); display:flex; flex-direction:column; height:100%;}
+.brand{
+  padding:22px 20px 16px 20px; border-bottom:1px solid var(--line-dark);
+}
+.brand .plot{
+  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.14em; color:var(--amber); text-transform:uppercase; margin-bottom:6px;
+}
+.brand h1{font-size:19px; color:#fff; line-height:1.15;}
+.brand .sub{font-size:11.5px; color:#8b95a3; margin-top:4px;}
+
+.nav{flex:1; overflow-y:auto; padding:10px 10px;}
+.nav-group-label{
+  font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:#6b7585;
+  padding:14px 10px 6px 10px; font-family:'JetBrains Mono',monospace;
+}
+.nav-item{
+  display:flex; align-items:center; gap:10px;
+  padding:9px 10px; border-radius:8px; font-size:13.5px; color:#c7cdd6;
+  cursor:pointer; margin-bottom:2px; position:relative; transition:background .12s;
+}
+.nav-item .num{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#6b7585; width:16px;}
+.nav-item:hover{background:var(--charcoal-3); color:#fff;}
+.nav-item.active{background:var(--amber); color:#1C2430; font-weight:600;}
+.nav-item.active .num{color:#1C2430; opacity:.6;}
+.nav-item .badge{
+  margin-left:auto; background:var(--brick); color:#fff; font-size:10px; font-weight:700;
+  border-radius:20px; padding:1px 7px; font-family:'JetBrains Mono',monospace;
+}
+.nav-item.active .badge{background:#1C2430; color:var(--amber);}
+
+.sidebar-foot{padding:14px 16px; border-top:1px solid var(--line-dark);}
+.role-switch{display:flex; gap:6px; margin-bottom:10px;}
+.role-btn{flex:1; padding:6px 4px; font-size:11px; border-radius:6px; border:1px solid var(--line-dark); background:transparent; color:#9aa3af; text-align:center;}
+.role-btn.active{background:var(--slate); color:#fff; border-color:var(--slate);}
+.user-line{font-size:11.5px; color:#8b95a3; font-family:'JetBrains Mono',monospace;}
+
+.main{flex:1; min-width:0; display:flex; flex-direction:column;}
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 32px; border-bottom:1px solid var(--line); background:var(--paper);
+  position:sticky; top:0; z-index:5;
+}
+.topbar h2{font-size:22px;}
+.topbar .crumb{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.1em; margin-bottom:3px;}
+.topbar-actions{display:flex; gap:8px;}
+
+.content{padding:26px 32px 60px 32px; flex:1;}
+
+/* ---------- COMPONENTS ---------- */
+.btn{
+  border:1px solid var(--line); background:#fff; color:var(--ink); padding:8px 14px;
+  border-radius:8px; font-size:13.5px; font-weight:600; display:inline-flex; align-items:center; gap:6px;
+  transition:all .12s;
+}
+.btn:hover{border-color:var(--slate); color:var(--slate);}
+.btn-primary{background:var(--charcoal); color:#fff; border-color:var(--charcoal);}
+.btn-primary:hover{background:var(--amber-dim); border-color:var(--amber-dim); color:#fff;}
+.btn-amber{background:var(--amber); color:var(--charcoal); border-color:var(--amber);}
+.btn-amber:hover{background:var(--amber-dim); color:#fff;}
+.btn-ghost{background:transparent; border-color:transparent; color:var(--ink-soft); padding:6px 8px;}
+.btn-ghost:hover{color:var(--brick); border-color:transparent;}
+.btn-sm{padding:5px 10px; font-size:12px;}
+.btn-danger{color:var(--brick);}
+.btn:disabled{opacity:.45; cursor:not-allowed;}
+
+.grid-cards{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:14px; margin-bottom:26px;}
+.stat-card{
+  background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px;
+  box-shadow:var(--shadow);
+}
+.stat-card .n{font-family:'Space Grotesk',sans-serif; font-size:30px; font-weight:700; line-height:1;}
+.stat-card .l{font-size:12px; color:var(--ink-soft); margin-top:6px; text-transform:uppercase; letter-spacing:.05em;}
+.stat-card.amber .n{color:var(--amber-dim);}
+.stat-card.brick .n{color:var(--brick);}
+.stat-card.green .n{color:var(--green);}
+.stat-card.slate .n{color:var(--slate);}
+
+.panel{background:#fff; border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:22px; overflow:hidden;}
+.panel-head{display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--line);}
+.panel-head h3{font-size:15px;}
+.panel-body{padding:6px 0;}
+.panel-body.pad{padding:16px 18px;}
+
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th{text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); padding:9px 18px; border-bottom:1px solid var(--line); font-family:'JetBrains Mono',monospace; font-weight:600;}
+td{padding:11px 18px; border-bottom:1px solid #F0EEE7; vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr.row-hover:hover{background:#FAF8F3;}
+
+.pill{display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap;}
+.pill-dot{width:6px; height:6px; border-radius:50%;}
+.pill-amber{background:var(--amber-bg); color:var(--amber-dim);}
+.pill-brick{background:var(--brick-bg); color:var(--brick);}
+.pill-green{background:var(--green-bg); color:var(--green);}
+.pill-slate{background:#E7ECEE; color:var(--slate);}
+
+.empty{padding:36px 20px; text-align:center; color:var(--ink-soft);}
+.empty .ico{font-size:26px; margin-bottom:8px;}
+.empty .t{font-weight:600; color:var(--ink); font-size:14px; margin-bottom:3px;}
+.empty .d{font-size:12.5px;}
+
+.tabs{display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:18px;}
+.tab{padding:9px 14px; font-size:13px; font-weight:600; color:var(--ink-soft); border-bottom:2px solid transparent; cursor:pointer;}
+.tab.active{color:var(--charcoal); border-bottom-color:var(--amber);}
+
+.field{margin-bottom:13px;}
+.field label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em;}
+.field input, .field select, .field textarea{
+  width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:7px; background:var(--paper); color:var(--ink);
+}
+.field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--amber); outline-offset:0; border-color:var(--amber);}
+.field textarea{resize:vertical; min-height:70px;}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;}
+
+.modal-backdrop{
+  position:fixed; inset:0; background:rgba(28,36,48,.5); display:flex; align-items:flex-start; justify-content:center;
+  padding:40px 16px; overflow-y:auto; z-index:100;
+}
+.modal{background:#fff; border-radius:14px; width:100%; max-width:560px; box-shadow:0 20px 60px rgba(0,0,0,.25); animation:pop .15s ease-out;}
+@keyframes pop{from{transform:translateY(8px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+.modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--line);}
+.modal-head h3{font-size:16px;}
+.modal-body{padding:20px 22px; max-height:70vh; overflow-y:auto;}
+.modal-foot{padding:14px 22px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:8px;}
+.close-x{background:none; border:none; font-size:18px; color:var(--ink-soft); padding:4px;}
+
+.zone-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px;}
+.zone-card{border:1px solid var(--line); border-radius:10px; padding:14px; background:#fff;}
+.zone-card h4{font-size:14px; margin-bottom:8px;}
+.seg{display:flex; border-radius:7px; overflow:hidden; border:1px solid var(--line); margin-bottom:8px;}
+.seg button{flex:1; padding:7px; font-size:12px; font-weight:600; background:#fff; border:none; color:var(--ink-soft);}
+.seg button.on-ok{background:var(--green); color:#fff;}
+.seg button.on-bad{background:var(--brick); color:#fff;}
+.seg button.on-warn{background:var(--amber); color:var(--charcoal);}
+
+.notice{border-radius:8px; padding:10px 14px; font-size:12.5px; margin-bottom:14px; display:flex; gap:8px; align-items:flex-start;}
+.notice-amber{background:var(--amber-bg); color:#7a5417;}
+.notice-brick{background:var(--brick-bg); color:var(--brick);}
+
+.searchbar{display:flex; gap:8px; margin-bottom:16px;}
+.searchbar input{flex:1; padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:#fff;}
+
+.kanban{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+.kcol{background:#F3F1EB; border-radius:10px; padding:10px;}
+.kcol h4{font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); padding:4px 6px 10px 6px;}
+.kcard{background:#fff; border:1px solid var(--line); border-radius:8px; padding:10px 11px; margin-bottom:8px; box-shadow:var(--shadow); cursor:grab;}
+.kcard .t{font-weight:600; font-size:13px; margin-bottom:4px;}
+.kcard .m{font-size:11px; color:var(--ink-soft); display:flex; justify-content:space-between; align-items:center;}
+
+.doc-row{display:flex; align-items:center; gap:10px; padding:10px 18px; border-bottom:1px solid #F0EEE7;}
+.doc-ico{width:32px; height:32px; border-radius:7px; background:var(--concrete); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--slate); flex-shrink:0;}
+
+.calendar{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+.cal-cell{min-height:88px; border:1px solid var(--line); border-radius:8px; padding:6px; background:#fff;}
+.cal-cell.other{background:#F7F5F0; opacity:.5;}
+.cal-cell .dn{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-soft); margin-bottom:4px;}
+.cal-cell.today{border-color:var(--amber); border-width:2px;}
+.cal-ev{background:var(--amber-bg); color:var(--amber-dim); font-size:10.5px; border-radius:5px; padding:2px 5px; margin-bottom:3px; cursor:pointer; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.cal-head{font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; color:var(--ink-soft); text-align:center; padding-bottom:4px;}
+
+.toast{position:fixed; bottom:24px; right:24px; background:var(--charcoal); color:#fff; padding:12px 18px; border-radius:9px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.25); z-index:200; display:flex; gap:8px; align-items:center;}
+.chip-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;}
+.chip{background:var(--concrete); font-size:11px; padding:3px 9px; border-radius:20px; color:var(--ink-soft); font-weight:600;}
+
+.locked{filter:grayscale(.4); opacity:.55; pointer-events:none;}
+.loading-screen{position:fixed; inset:0; background:var(--charcoal); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; z-index:1000; font-family:'JetBrains Mono',monospace;}
+
+/* ---------- LOCK SCREEN (CODE PIN) ---------- */
+.lockscreen{
+  position:fixed; inset:0; z-index:2000; background:var(--charcoal);
+  background-image:
+    linear-gradient(var(--line-dark) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-dark) 1px, transparent 1px);
+  background-size:24px 24px; background-position:-1px -1px;
+  display:flex; align-items:center; justify-content:center;
+}
+.lock-card{
+  background:linear-gradient(180deg, rgba(28,36,48,.98), rgba(28,36,48,1));
+  border:1px solid var(--line-dark); border-radius:14px; padding:34px 32px 28px 32px;
+  width:300px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.4);
+}
+.lock-card .plot{font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.14em; color:var(--amber); text-transform:uppercase; margin-bottom:6px;}
+.lock-card h1{font-size:19px; color:#fff; margin-bottom:4px;}
+.lock-card .sub{font-size:11.5px; color:#8b95a3; margin-bottom:22px;}
+.pin-dots{display:flex; justify-content:center; gap:14px; margin-bottom:22px;}
+.pin-dot{width:14px; height:14px; border-radius:50%; border:1.5px solid #6b7585; transition:all .1s;}
+.pin-dot.filled{background:var(--amber); border-color:var(--amber);}
+.pin-dot.shake{animation:pinshake .35s;}
+@keyframes pinshake{0%,100%{transform:translateX(0);} 20%{transform:translateX(-6px);} 40%{transform:translateX(6px);} 60%{transform:translateX(-4px);} 80%{transform:translateX(4px);}}
+.pin-keypad{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:8px;}
+.pin-key{
+  background:var(--charcoal-3); border:1px solid var(--line-dark); color:#fff;
+  border-radius:10px; padding:14px 0; font-size:18px; font-family:'Space Grotesk',sans-serif; font-weight:600;
+  transition:background .1s;
+}
+.pin-key:hover{background:var(--slate);}
+.pin-key.pin-clear{font-size:11px; color:#9aa3af; background:transparent; border-color:transparent;}
+.pin-key.pin-back{font-size:15px; color:#9aa3af; background:transparent; border-color:transparent;}
+.lock-error{font-size:12px; color:var(--brick); min-height:16px; margin-top:6px; font-family:'JetBrains Mono',monospace;}
+.lock-setup-note{font-size:11.5px; color:var(--amber); margin-bottom:16px; line-height:1.5;}
+::-webkit-scrollbar{width:9px; height:9px;}
+::-webkit-scrollbar-thumb{background:#c9c3b3; border-radius:20px;}
+@media print{
+  .sidebar,.topbar-actions,.btn{display:none !important;}
+  .content{padding:0;}
+}
+@media (max-width:900px){
+  .sidebar{position:fixed; left:-260px; z-index:50; transition:left .2s;}
+  .sidebar.open{left:0;}
+  .row2,.row3{grid-template-columns:1fr;}
+  .kanban{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading-screen">
+  <div style="font-size:22px;letter-spacing:.1em;">RÉGIE</div>
+  <div style="font-size:11px;color:#8b95a3;">Chargement des données…</div>
+</div>
+
+<div id="lockscreen" class="lockscreen" style="display:none;">
+  <div class="lock-card">
+    <div class="plot" id="lock-plot">RÉGIE</div>
+    <h1 id="lock-title">Accès protégé</h1>
+    <div class="sub" id="lock-sub">Saisissez votre code PIN</div>
+    <div id="lock-setup-note"></div>
+    <div class="pin-dots" id="pin-dots"></div>
+    <div class="pin-keypad" id="pin-keypad"></div>
+    <div class="lock-error" id="lock-error"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none;"></div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+/* =========================================================
+   ADAPTATEUR SUPABASE — remplace window.storage (Claude artifacts)
+   par une persistance réelle dans une table Supabase (kv_store).
+   Nécessite config.js avec SUPABASE_URL / SUPABASE_ANON_KEY.
+   ========================================================= */
+(function(){
+  if(typeof window.APP_CONFIG === 'undefined' || !window.APP_CONFIG.supabaseUrl || !window.APP_CONFIG.supabaseAnonKey){
+    console.error("config.js manquant ou incomplet : renseignez supabaseUrl et supabaseAnonKey.");
+  }
+  const supa = window.supabase.createClient(
+    window.APP_CONFIG.supabaseUrl,
+    window.APP_CONFIG.supabaseAnonKey
+  );
+
+  window.storage = {
+    async get(key, shared){
+      const { data, error } = await supa.from('kv_store').select('value').eq('key', key).maybeSingle();
+      if(error) throw error;
+      if(!data) return null;
+      return { key, value: data.value, shared: !!shared };
+    },
+    async set(key, value, shared){
+      const { error } = await supa.from('kv_store').upsert({ key, value, updated_at: new Date().toISOString() });
+      if(error){ console.error("Erreur Supabase (set):", error); return null; }
+      return { key, value, shared: !!shared };
+    },
+    async delete(key, shared){
+      const { error } = await supa.from('kv_store').delete().eq('key', key);
+      if(error){ console.error("Erreur Supabase (delete):", error); return null; }
+      return { key, deleted:true, shared: !!shared };
+    },
+    async list(prefix, shared){
+      let q = supa.from('kv_store').select('key');
+      if(prefix) q = q.like('key', prefix+'%');
+      const { data, error } = await q;
+      if(error){ console.error("Erreur Supabase (list):", error); return null; }
+      return { keys: (data||[]).map(r=>r.key), prefix, shared: !!shared };
+    }
+  };
+})();
+</script>
+<script>
+/* =========================================================
+   RÉGIE — Gestion Immeuble & Activités
+   Application autonome (HTML/JS + persistance window.storage)
+   ========================================================= */
+
+const STORE_KEY = "regie-db-v1";
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const todayISO = () => new Date().toISOString().slice(0,10);
+const fmtDate = (iso) => { if(!iso) return "—"; const d=new Date(iso+"T00:00:00"); return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}); };
+const fmtDateTime = (iso) => { const d=new Date(iso); return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); };
+const daysBetween = (iso) => Math.round((new Date(iso+"T00:00:00") - new Date(todayISO()+"T00:00:00"))/86400000);
+const escapeHtml = (s) => (s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+/* ---------------- DEFAULT DATA ---------------- */
+function seedData(){
+  const t = todayISO();
+  const plus = (n) => new Date(Date.now()+n*86400000).toISOString().slice(0,10);
+  return {
+    config: {
+      brandName: "Régie",
+      brandSub: "Gestion Immeuble & Activités",
+      planRef: "PLAN No. 2026-IMM",
+      zonesMenage: ["Hall","Escaliers","Ascenseur","Parking","Local poubelles","Vitres","Espaces verts"],
+      elementsPC: ["Éclairage","Portes","Interphone","Ascenseur","Chauffage","Sécurité incendie","Boîtes aux lettres"],
+      typesDossier: ["Réclamations","Travaux","Sinistres","Fournisseurs","Contrats","Copropriétaires"],
+      categoriesNotes: ["Général","Copropriété","Travaux","Fournisseurs"],
+      relanceJalons: [3,7,15],
+      pin: "1234",
+    },
+    users: [
+      {id:uid(), nom:"S. Lambert", role:"admin"},
+      {id:uid(), nom:"K. Morel", role:"agent"},
+      {id:uid(), nom:"T. Haddad", role:"agent"},
+    ],
+    currentUserId: null,
+    rdvs: [
+    ],
+    missions: [
+      {id:uid(), titre:"Remplacer ampoule cage B - étage 3", description:"Éclairage HS signalé par résident", priorite:"haute", dateLimite:plus(1), responsable:"T. Haddad", statut:"a_faire", source:"controle"},
+      {id:uid(), titre:"Devis réparation porte parking", description:"Suite contrôle parties communes", priorite:"moyenne", dateLimite:plus(5), responsable:"K. Morel", statut:"en_cours", source:"controle"},
+      {id:uid(), titre:"Relancer syndic pour PV AG", description:"", priorite:"basse", dateLimite:plus(10), responsable:"S. Lambert", statut:"a_faire", source:"manuel"},
+      {id:uid(), titre:"Contrôle extincteurs annuel", description:"Organisme agréé à contacter", priorite:"haute", dateLimite:plus(-1), responsable:"S. Lambert", statut:"reporte", source:"manuel"},
+      {id:uid(), titre:"Nettoyage graffiti hall B", description:"", priorite:"moyenne", dateLimite:plus(0), responsable:"T. Haddad", statut:"termine", source:"manuel"},
+    ],
+    controlesMenage: [
+      {id:uid(), date:t, zone:"Hall", etat:"conforme", observation:"", photos:0, agent:"K. Morel"},
+      {id:uid(), date:t, zone:"Escaliers", etat:"conforme", observation:"", photos:0, agent:"K. Morel"},
+      {id:uid(), date:plus(-1), zone:"Vitres", etat:"non_conforme", observation:"Traces persistantes hall d'entrée", photos:1, agent:"K. Morel"},
+      {id:uid(), date:plus(-1), zone:"Local poubelles", etat:"conforme", observation:"", photos:0, agent:"T. Haddad"},
+    ],
+    controlesPC: [
+      {id:uid(), date:t, element:"Éclairage", etat:"defectueux", observation:"Ampoule HS étage 3 bât. B", photos:0, agent:"T. Haddad", missionId:null},
+      {id:uid(), date:t, element:"Interphone", etat:"bon", observation:"", photos:0, agent:"T. Haddad"},
+      {id:uid(), date:plus(-2), element:"Portes", etat:"a_surveiller", observation:"Ferme-porte parking un peu lent", photos:0, agent:"K. Morel"},
+    ],
+    dossiers: [
+      {id:uid(), numero:"DOS-2026-014", type:"Sinistres", statut:"ouvert", echeance:plus(14), notes:"Dégât des eaux lot 8, expert mandaté", historique:[{date:t, texte:"Ouverture du dossier"}], documents:0},
+      {id:uid(), numero:"DOS-2026-011", type:"Travaux", statut:"en_cours", echeance:plus(30), notes:"Ravalement façade cour intérieure", historique:[{date:plus(-10), texte:"Devis reçu"}], documents:2},
+      {id:uid(), numero:"DOS-2026-009", type:"Réclamations", statut:"cloture", echeance:plus(-5), notes:"Nuisances sonores lot 12 - résolu", historique:[{date:plus(-20), texte:"Ouverture"},{date:plus(-5), texte:"Clôturé après médiation"}], documents:1},
+    ],
+    notes: [
+    ],
+    emails: [
+      {id:uid(), destinataire:"syndic@cabinet-example.fr", objet:"Demande de PV d'assemblée générale", dateEnvoi:plus(-8), statut:"en_attente", relances:[{date:plus(-1), type:"3 jours"}]},
+      {id:uid(), destinataire:"contrat@ascenseurs-otis.fr", objet:"Renouvellement contrat maintenance", dateEnvoi:plus(-16), statut:"en_attente", relances:[{date:plus(-13),type:"3 jours"},{date:plus(-9),type:"7 jours"}]},
+      {id:uid(), destinataire:"m.ferreira@mail.fr", objet:"Réponse réclamation nuisances", dateEnvoi:plus(-6), statut:"resolu", relances:[]},
+    ],
+    documents: [
+      {id:uid(), nom:"Contrat_Maintenance_Ascenseur.pdf", type:"PDF", dossier:"Contrats", date:plus(-40)},
+      {id:uid(), nom:"Devis_Ravalement_Facade.xlsx", type:"Excel", dossier:"Travaux", date:plus(-12)},
+      {id:uid(), nom:"Reglement_Copropriete.docx", type:"Word", dossier:"Copropriétaires", date:plus(-200)},
+      {id:uid(), nom:"Photo_Degat_Eau_Lot8.jpg", type:"Photo", dossier:"Sinistres", date:t},
+    ],
+    journal: [
+      {id:uid(), date:new Date().toISOString(), texte:"Application initialisée", user:"Système"},
+    ],
+  };
+}
+
+let DB = null;
+let VIEW = "dashboard";
+let VIEWSTATE = {}; // ephemeral per-view UI state (filters, tabs..)
+
+/* ---------------- PERSISTENCE ---------------- */
+async function loadDB(){
+  try{
+    const res = await window.storage.get(STORE_KEY, false);
+    if(res && res.value){ DB = JSON.parse(res.value); migrateDB(); return; }
+  }catch(e){ /* not found */ }
+  DB = seedData();
+  await saveDB();
+}
+function migrateDB(){
+  // Garantit la présence de la configuration modifiable même sur des données sauvegardées avant son ajout
+  const defaults = seedData().config;
+  DB.config = Object.assign({}, defaults, DB.config||{});
+  if(!DB.config.pin) DB.config.pin = defaults.pin;
+}
+async function saveDB(){
+  try{ await window.storage.set(STORE_KEY, JSON.stringify(DB), false); }
+  catch(e){ console.error("Erreur sauvegarde", e); toast("⚠ Sauvegarde impossible (hors-ligne)"); }
+}
+function log(texte){
+  DB.journal.unshift({id:uid(), date:new Date().toISOString(), texte, user: currentUser().nom});
+  DB.journal = DB.journal.slice(0,300);
+}
+function currentUser(){
+  return DB.users.find(u=>u.id===DB.currentUserId) || DB.users[0];
+}
+function isAdmin(){ return currentUser().role === "admin"; }
+
+async function persistAndRender(msg){
+  await saveDB();
+  if(msg) toast(msg);
+  render();
+}
+
+/* ---------------- TOAST ---------------- */
+function toast(msg){
+  const el = document.createElement('div');
+  el.className='toast'; el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 2200);
+}
+
+/* ---------------- NAV CONFIG ---------------- */
+const NAV = [
+  {group:"Vue d'ensemble", items:[
+    {id:"dashboard", num:"00", label:"Tableau de bord"},
+  ]},
+  {group:"Activité", items:[
+    {id:"agenda", num:"01", label:"Agenda"},
+    {id:"comptesrendus", num:"02", label:"Comptes rendus"},
+    {id:"missions", num:"03", label:"Missions"},
+  ]},
+  {group:"Contrôles", items:[
+    {id:"menage", num:"04", label:"Contrôle ménage"},
+    {id:"partiescommunes", num:"05", label:"Parties communes"},
+  ]},
+  {group:"Administratif", items:[
+    {id:"dossiers", num:"06", label:"Dossiers"},
+    {id:"notes", num:"07", label:"Notes"},
+    {id:"emails", num:"08", label:"Emails"},
+    {id:"documents", num:"09", label:"Documents"},
+  ]},
+  {group:"Pilotage", items:[
+    {id:"statistiques", num:"10", label:"Statistiques"},
+    {id:"journal", num:"11", label:"Journal des actions", adminOnly:true},
+    {id:"utilisateurs", num:"12", label:"Utilisateurs", adminOnly:true},
+    {id:"parametres", num:"13", label:"Paramètres", adminOnly:true},
+  ]},
+];
+const NAV_LABEL = {}; NAV.forEach(g=>g.items.forEach(i=>NAV_LABEL[i.id]=i.label));
+
+function navBadgeCount(id){
+  if(!DB) return 0;
+  if(id==="missions") return DB.missions.filter(m=>m.statut!=="termine" && daysBetween(m.dateLimite)<=0).length;
+  if(id==="emails") return DB.emails.filter(e=>e.statut==="en_attente" && daysBetween(e.dateEnvoi)<=-3).length;
+  if(id==="dossiers") return DB.dossiers.filter(d=>d.statut!=="cloture" && daysBetween(d.echeance)<=3).length;
+  return 0;
+}
+
+/* ================= RENDER SHELL ================= */
+function render(){
+  const app = document.getElementById('app');
+  const groupsHtml = NAV.map(g=>{
+    const items = g.items.filter(i=> !i.adminOnly || isAdmin());
+    if(!items.length) return "";
+    return `<div class="nav-group-label">${g.group}</div>` + items.map(i=>{
+      const badge = navBadgeCount(i.id);
+      return `<div class="nav-item ${VIEW===i.id?'active':''}" onclick="goTo('${i.id}')">
+        <span class="num">${i.num}</span><span>${i.label}</span>
+        ${badge>0?`<span class="badge">${badge}</span>`:''}
+      </div>`;
+    }).join("");
+  }).join("");
+
+  app.innerHTML = `
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <div class="brand">
+          <div class="plot">${escapeHtml(DB.config.planRef)}</div>
+          <h1>${escapeHtml(DB.config.brandName)}</h1>
+          <div class="sub">${escapeHtml(DB.config.brandSub)}</div>
+        </div>
+        <div class="nav">${groupsHtml}</div>
+        <div class="sidebar-foot">
+          <div class="role-switch">
+            ${DB.users.map(u=>`<button class="role-btn ${DB.currentUserId===u.id?'active':''}" onclick="switchUser('${u.id}')">${escapeHtml(u.nom.split(' ')[0])}</button>`).join('')}
+          </div>
+          <div class="user-line">${escapeHtml(currentUser().nom)} · ${currentUser().role==='admin'?'Administrateur':'Agent'}</div>
+          <button class="btn btn-sm" style="width:100%; margin-top:10px; justify-content:center; background:transparent; color:#c7cdd6; border-color:var(--line-dark);" onclick="lockApp()">🔒 Verrouiller</button>
+        </div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="crumb">Module ${NAV.flatMap(g=>g.items).find(i=>i.id===VIEW)?.num || ''}</div>
+          <h2>${NAV_LABEL[VIEW]}</h2>
+        </div>
+        <div class="topbar-actions" id="topbar-actions"></div>
+      </div>
+      <div class="content" id="content"></div>
+    </div>
+  `;
+  const renderer = VIEWS[VIEW];
+  if(renderer) renderer();
+}
+function goTo(id){ VIEW = id; VIEWSTATE = {}; render(); }
+function switchUser(id){ DB.currentUserId = id; saveDB(); render(); }
+function setTopbarActions(html){ document.getElementById('topbar-actions').innerHTML = html; }
+function setContent(html){ document.getElementById('content').innerHTML = html; }
+
+/* ================= MODAL HELPERS ================= */
+function openModal(title, bodyHtml, footHtml){
+  const wrap = document.createElement('div');
+  wrap.className='modal-backdrop'; wrap.id='modal-backdrop';
+  wrap.innerHTML = `<div class="modal">
+    <div class="modal-head"><h3>${title}</h3><button class="close-x" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">${bodyHtml}</div>
+    <div class="modal-foot">${footHtml}</div>
+  </div>`;
+  wrap.addEventListener('mousedown', (e)=>{ if(e.target===wrap) closeModal(); });
+  document.body.appendChild(wrap);
+}
+function closeModal(){ const m=document.getElementById('modal-backdrop'); if(m) m.remove(); }
+function fval(id){ const el=document.getElementById(id); return el ? el.value : ""; }
+
+/* ================= EXPORT HELPERS ================= */
+function exportCSV(filename, rows){
+  const csv = rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF"+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+  toast("Export CSV téléchargé");
+}
+function printPage(){ window.print(); }
+function mailtoLink(to, subject, body){
+  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/* ================= PILL HELPERS ================= */
+function pillMission(statut){
+  const map = {a_faire:['slate','À faire'], en_cours:['amber','En cours'], termine:['green','Terminé'], reporte:['brick','Reporté']};
+  const [c,l] = map[statut]||['slate',statut];
+  return `<span class="pill pill-${c}">${l}</span>`;
+}
+function pillPriorite(p){
+  const map = {haute:['brick','Haute'], moyenne:['amber','Moyenne'], basse:['slate','Basse']};
+  const [c,l]=map[p]||['slate',p];
+  return `<span class="pill pill-${c}">${l}</span>`;
+}
+function pillEtatMenage(e){
+  return e==='conforme' ? `<span class="pill pill-green"><span class="pill-dot" style="background:var(--green)"></span>Conforme</span>` : `<span class="pill pill-brick"><span class="pill-dot" style="background:var(--brick)"></span>Non conforme</span>`;
+}
+function pillEtatPC(e){
+  const map = {bon:['green','Bon'], a_surveiller:['amber','À surveiller'], defectueux:['brick','Défectueux']};
+  const [c,l]=map[e]||['slate',e];
+  return `<span class="pill pill-${c}">${l}</span>`;
+}
+function pillDossier(s){
+  const map = {ouvert:['brick','Ouvert'], en_cours:['amber','En cours'], cloture:['green','Clôturé']};
+  const [c,l]=map[s]||['slate',s];
+  return `<span class="pill pill-${c}">${l}</span>`;
+}
+function pillEmail(s){
+  return s==='resolu' ? `<span class="pill pill-green">Résolu</span>` : `<span class="pill pill-amber">En attente</span>`;
+}
+
+/* ================================================================
+   MODULE 0 — DASHBOARD
+   ================================================================ */
+function viewDashboard(){
+  setTopbarActions(`<button class="btn" onclick="exportGlobalCSV()">⇩ Export global</button>`);
+  const t = todayISO();
+  const rdvToday = DB.rdvs.filter(r=>r.date===t).sort((a,b)=>a.heure.localeCompare(b.heure));
+  const missionsUrgentes = DB.missions.filter(m=>m.statut!=='termine' && (m.priorite==='haute' || daysBetween(m.dateLimite)<=1)).slice(0,6);
+  const controlesAFaire = ["Hall","Escaliers","Ascenseur","Parking","Local poubelles","Vitres","Espaces verts"].filter(z => !DB.controlesMenage.some(c=>c.zone===z && c.date===t));
+  const dossiersOuverts = DB.dossiers.filter(d=>d.statut!=='cloture');
+  const emailsARelancer = DB.emails.filter(e=>e.statut==='en_attente' && daysBetween(e.dateEnvoi)<=-3);
+  const notifs = [
+    ...missionsUrgentes.map(m=>({icon:'⚑', text:`Mission urgente : ${m.titre}`, tone:'brick'})),
+    ...emailsARelancer.map(e=>({icon:'✉', text:`Relance à envoyer : ${e.objet}`, tone:'amber'})),
+    ...DB.dossiers.filter(d=>d.statut!=='cloture' && daysBetween(d.echeance)<=3).map(d=>({icon:'📁', text:`Échéance proche : ${d.numero}`, tone:'brick'})),
+  ].slice(0,8);
+
+  setContent(`
+    <div class="grid-cards">
+      <div class="stat-card amber"><div class="n">${rdvToday.length}</div><div class="l">Rendez-vous aujourd'hui</div></div>
+      <div class="stat-card brick"><div class="n">${missionsUrgentes.length}</div><div class="l">Missions urgentes</div></div>
+      <div class="stat-card slate"><div class="n">${controlesAFaire.length}</div><div class="l">Contrôles à effectuer</div></div>
+      <div class="stat-card green"><div class="n">${dossiersOuverts.length}</div><div class="l">Dossiers ouverts</div></div>
+      <div class="stat-card brick"><div class="n">${emailsARelancer.length}</div><div class="l">Emails à relancer</div></div>
+    </div>
+
+    <div class="row2" style="align-items:start;">
+      <div class="panel">
+        <div class="panel-head"><h3>Rendez-vous du jour</h3><button class="btn btn-sm" onclick="goTo('agenda')">Voir l'agenda →</button></div>
+        <div class="panel-body">
+          ${rdvToday.length ? `<table><tbody>${rdvToday.map(r=>`
+            <tr class="row-hover"><td class="mono" style="width:60px;">${r.heure}</td><td><b>${escapeHtml(r.objet)}</b><br><span style="color:var(--ink-soft);font-size:12px;">${escapeHtml(r.personne)} · ${escapeHtml(r.lieu)}</span></td></tr>
+          `).join('')}</tbody></table>` : emptyState('📅','Aucun rendez-vous aujourd’hui','Profitez-en pour avancer sur les missions en cours.')}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Notifications</h3></div>
+        <div class="panel-body pad">
+          ${notifs.length ? notifs.map(n=>`<div class="notice notice-${n.tone==='brick'?'brick':'amber'}"><span>${n.icon}</span><span>${escapeHtml(n.text)}</span></div>`).join('') : emptyState('🔔','Tout est sous contrôle','Aucune alerte pour le moment.')}
+        </div>
+      </div>
+    </div>
+
+    <div class="row2" style="align-items:start;">
+      <div class="panel">
+        <div class="panel-head"><h3>Missions urgentes</h3><button class="btn btn-sm" onclick="goTo('missions')">Voir tout →</button></div>
+        <div class="panel-body">
+          ${missionsUrgentes.length ? `<table><tbody>${missionsUrgentes.map(m=>`
+          <tr class="row-hover"><td><b>${escapeHtml(m.titre)}</b><br><span style="color:var(--ink-soft);font-size:12px;">${escapeHtml(m.responsable)} · échéance ${fmtDate(m.dateLimite)}</span></td><td style="text-align:right;">${pillPriorite(m.priorite)}</td></tr>
+          `).join('')}</tbody></table>` : emptyState('✅','Aucune mission urgente','Bon rythme, continuez ainsi.')}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Contrôles à effectuer aujourd'hui</h3><button class="btn btn-sm" onclick="goTo('menage')">Contrôler →</button></div>
+        <div class="panel-body pad">
+          ${controlesAFaire.length ? `<div class="chip-row">${controlesAFaire.map(z=>`<span class="chip">${z}</span>`).join('')}</div>` : emptyState('🧹','Tous les contrôles sont faits','Zones vérifiées pour aujourd’hui.')}
+        </div>
+      </div>
+    </div>
+  `);
+}
+function emptyState(ico,t,d){ return `<div class="empty"><div class="ico">${ico}</div><div class="t">${t}</div><div class="d">${d}</div></div>`; }
+function exportGlobalCSV(){
+  exportCSV('tableau_de_bord.csv', [
+    ['Indicateur','Valeur'],
+    ['Rendez-vous aujourd’hui', DB.rdvs.filter(r=>r.date===todayISO()).length],
+    ['Missions urgentes', DB.missions.filter(m=>m.statut!=='termine'&&m.priorite==='haute').length],
+    ['Dossiers ouverts', DB.dossiers.filter(d=>d.statut!=='cloture').length],
+    ['Emails en attente', DB.emails.filter(e=>e.statut==='en_attente').length],
+  ]);
+}
+
+/* ================================================================
+   MODULE 1 — AGENDA
+   ================================================================ */
+function viewAgenda(){
+  if(!VIEWSTATE.calMode) VIEWSTATE.calMode = 'mois';
+  if(!VIEWSTATE.refDate) VIEWSTATE.refDate = new Date();
+  setTopbarActions(`<button class="btn btn-primary" onclick="openRdvForm()">+ Nouveau rendez-vous</button>`);
+
+  const modes = ['jour','semaine','mois'];
+  setContent(`
+    <div class="tabs">${modes.map(m=>`<div class="tab ${VIEWSTATE.calMode===m?'active':''}" onclick="setCalMode('${m}')">Vue ${m}</div>`).join('')}</div>
+    <div id="agenda-nav" style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <button class="btn btn-sm" onclick="shiftCal(-1)">←</button>
+      <div style="font-weight:600; font-family:'Space Grotesk';" id="agenda-label"></div>
+      <button class="btn btn-sm" onclick="shiftCal(1)">→</button>
+      <button class="btn btn-sm" onclick="VIEWSTATE.refDate=new Date(); render();">Aujourd'hui</button>
+    </div>
+    <div id="agenda-body"></div>
+  `);
+  renderAgendaBody();
+}
+function setCalMode(m){ VIEWSTATE.calMode=m; render(); }
+function shiftCal(dir){
+  const d = VIEWSTATE.refDate;
+  if(VIEWSTATE.calMode==='jour') d.setDate(d.getDate()+dir);
+  else if(VIEWSTATE.calMode==='semaine') d.setDate(d.getDate()+dir*7);
+  else d.setMonth(d.getMonth()+dir);
+  render();
+}
+function rdvsOnDate(iso){ return DB.rdvs.filter(r=>r.date===iso).sort((a,b)=>a.heure.localeCompare(b.heure)); }
+function renderAgendaBody(){
+  const label = document.getElementById('agenda-label');
+  const body = document.getElementById('agenda-body');
+  const ref = VIEWSTATE.refDate;
+  if(VIEWSTATE.calMode==='jour'){
+    const iso = ref.toISOString().slice(0,10);
+    label.textContent = ref.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const evs = rdvsOnDate(iso);
+    body.innerHTML = `<div class="panel"><div class="panel-body">${evs.length ? `<table><tbody>${evs.map(r=>rdvRow(r)).join('')}</tbody></table>` : emptyState('📭','Journée libre','Aucun rendez-vous ce jour.')}</div></div>`;
+  } else if(VIEWSTATE.calMode==='semaine'){
+    const start = new Date(ref); const day = (start.getDay()+6)%7; start.setDate(start.getDate()-day);
+    const days = Array.from({length:7}, (_,i)=>{ const d=new Date(start); d.setDate(start.getDate()+i); return d; });
+    label.textContent = `Semaine du ${days[0].toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} au ${days[6].toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'})}`;
+    body.innerHTML = `<div class="calendar">${days.map(d=>{
+      const iso = d.toISOString().slice(0,10);
+      const isToday = iso===todayISO();
+      const evs = rdvsOnDate(iso);
+      return `<div class="cal-cell ${isToday?'today':''}" style="min-height:160px;">
+        <div class="dn">${d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric'})}</div>
+        ${evs.map(e=>`<div class="cal-ev" onclick="openRdvDetail('${e.id}')">${e.heure} ${escapeHtml(e.objet)}</div>`).join('')}
+      </div>`;
+    }).join('')}</div>`;
+  } else {
+    const y = ref.getFullYear(), m = ref.getMonth();
+    label.textContent = ref.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+    const first = new Date(y,m,1); const startDay=(first.getDay()+6)%7;
+    const gridStart = new Date(first); gridStart.setDate(first.getDate()-startDay);
+    const cells = Array.from({length:42},(_,i)=>{ const d=new Date(gridStart); d.setDate(gridStart.getDate()+i); return d; });
+    const heads = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+    body.innerHTML = `<div class="calendar">${heads.map(h=>`<div class="cal-head">${h}</div>`).join('')}
+      ${cells.map(d=>{
+        const iso = d.toISOString().slice(0,10);
+        const other = d.getMonth()!==m;
+        const isToday = iso===todayISO();
+        const evs = rdvsOnDate(iso);
+        return `<div class="cal-cell ${other?'other':''} ${isToday?'today':''}">
+          <div class="dn">${d.getDate()}</div>
+          ${evs.slice(0,3).map(e=>`<div class="cal-ev" onclick="openRdvDetail('${e.id}')">${e.heure} ${escapeHtml(e.objet)}</div>`).join('')}
+          ${evs.length>3?`<div style="font-size:10px;color:var(--ink-soft);">+${evs.length-3} autres</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+}
+function rdvRow(r){
+  return `<tr class="row-hover"><td class="mono" style="width:60px;">${r.heure}</td>
+    <td><b>${escapeHtml(r.objet)}</b><br><span style="color:var(--ink-soft);font-size:12px;">${escapeHtml(r.personne)} · ${escapeHtml(r.lieu)}</span></td>
+    <td style="text-align:right;">${r.statut==='realise'?'<span class="pill pill-green">Réalisé</span>':'<span class="pill pill-slate">Planifié</span>'}</td>
+    <td style="text-align:right; white-space:nowrap;">
+      <button class="btn btn-ghost btn-sm" onclick="openRdvDetail('${r.id}')">Détail</button>
+      <button class="btn btn-ghost btn-sm" onclick="openRdvForm('${r.id}')">✎</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteRdv('${r.id}')">🗑</button>
+    </td></tr>`;
+}
+function openRdvForm(id){
+  const r = id ? DB.rdvs.find(x=>x.id===id) : null;
+  openModal(r?'Modifier le rendez-vous':'Nouveau rendez-vous', `
+    <div class="row2">
+      <div class="field"><label>Date</label><input type="date" id="f-date" value="${r?r.date:todayISO()}"></div>
+      <div class="field"><label>Heure</label><input type="time" id="f-heure" value="${r?r.heure:'09:00'}"></div>
+    </div>
+    <div class="field"><label>Objet</label><input id="f-objet" value="${escapeHtml(r?.objet||'')}" placeholder="Ex : Visite technique ascenseur"></div>
+    <div class="row2">
+      <div class="field"><label>Lieu</label><input id="f-lieu" value="${escapeHtml(r?.lieu||'')}"></div>
+      <div class="field"><label>Personne concernée</label><input id="f-personne" value="${escapeHtml(r?.personne||'')}"></div>
+    </div>
+    <div class="field"><label>Commentaires</label><textarea id="f-comment">${escapeHtml(r?.commentaires||'')}</textarea></div>
+  `, `
+    <button class="btn" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-primary" onclick="saveRdv('${id||''}')">Enregistrer</button>
+  `);
+}
+async function saveRdv(id){
+  const data = {date:fval('f-date'), heure:fval('f-heure'), objet:fval('f-objet'), lieu:fval('f-lieu'), personne:fval('f-personne'), commentaires:fval('f-comment')};
+  if(!data.objet){ toast('L’objet est requis'); return; }
+  if(id){ Object.assign(DB.rdvs.find(r=>r.id===id), data); log(`Rendez-vous modifié : ${data.objet}`); }
+  else { DB.rdvs.push({id:uid(), statut:'planifie', cr:null, ...data}); log(`Rendez-vous créé : ${data.objet}`); }
+  closeModal(); await persistAndRender('Rendez-vous enregistré');
+}
+async function deleteRdv(id){
+  const r = DB.rdvs.find(x=>x.id===id);
+  DB.rdvs = DB.rdvs.filter(x=>x.id!==id);
+  log(`Rendez-vous supprimé : ${r?.objet||''}`);
+  await persistAndRender('Rendez-vous supprimé');
+}
+function openRdvDetail(id){
+  const r = DB.rdvs.find(x=>x.id===id); if(!r) return;
+  openModal(`${escapeHtml(r.objet)}`, `
+    <div style="font-size:13px; color:var(--ink-soft); margin-bottom:14px;">${fmtDate(r.date)} à ${r.heure} · ${escapeHtml(r.lieu)}</div>
+    <div class="field"><label>Personne concernée</label><div>${escapeHtml(r.personne)}</div></div>
+    ${r.commentaires?`<div class="field"><label>Commentaires</label><div>${escapeHtml(r.commentaires)}</div></div>`:''}
+    <hr style="border:none;border-top:1px solid var(--line); margin:16px 0;">
+    <div class="field"><label>Compte rendu</label>
+    ${r.cr ? `<div style="font-size:13.5px; line-height:1.6;">
+      <b>Participants :</b> ${escapeHtml(r.cr.participants)}<br>
+      <b>Résumé :</b> ${escapeHtml(r.cr.resume)}<br>
+      <b>Décisions :</b> ${escapeHtml(r.cr.decisions)}<br>
+      <b>Actions :</b> ${escapeHtml(r.cr.actions)}<br>
+      <span class="chip-row"><span class="chip">${r.cr.documents.length} document(s)</span><span class="chip">${r.cr.photos} photo(s)</span></span>
+    </div>` : `<div style="color:var(--ink-soft); font-size:13px;">Aucun compte rendu rédigé.</div>`}
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">Fermer</button>
+    <button class="btn btn-primary" onclick="closeModal(); openCrForm('${r.id}')">${r.cr?'Modifier le CR':'Rédiger un CR'}</button>
+  `);
+}
+
+/* ================================================================
+   MODULE 2 — COMPTES RENDUS
+   ================================================================ */
+function viewComptesRendus(){
+  setTopbarActions(`<button class="btn" onclick="printPage()">🖨 Imprimer</button>`);
+  const withCr = DB.rdvs.filter(r=>r.cr);
+  const withoutCr = DB.rdvs.filter(r=>!r.cr && r.statut!=='annule');
+  setContent(`
+    <div class="panel">
+      <div class="panel-head"><h3>Rendez-vous sans compte rendu</h3></div>
+      <div class="panel-body">
+        ${withoutCr.length ? `<table><tbody>${withoutCr.map(r=>`
+        <tr class="row-hover"><td class="mono" style="width:100px;">${fmtDate(r.date)}</td><td><b>${escapeHtml(r.objet)}</b><br><span style="color:var(--ink-soft);font-size:12px;">${escapeHtml(r.personne)}</span></td>
+        <td style="text-align:right;"><button class="btn btn-sm btn-amber" onclick="openCrForm('${r.id}')">Rédiger le CR</button></td></tr>
+        `).join('')}</tbody></table>` : emptyState('✅','Rien en attente','Tous les rendez-vous passés ont un compte rendu.')}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Historique des comptes rendus</h3></div>
+      <div class="panel-body">
+        ${withCr.length ? withCr.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`
+        <div style="padding:14px 18px; border-bottom:1px solid #F0EEE7;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline;">
+            <b>${escapeHtml(r.objet)}</b><span class="mono" style="font-size:11.5px; color:var(--ink-soft);">${fmtDate(r.date)} · ${r.heure}</span>
+          </div>
+          <div style="font-size:13px; color:var(--ink-soft); margin:4px 0 8px 0;">Participants : ${escapeHtml(r.cr.participants)}</div>
+          <div style="font-size:13.5px;">${escapeHtml(r.cr.resume)}</div>
+          <div class="chip-row">
+            <span class="chip">${r.cr.documents.length} document(s)</span><span class="chip">${r.cr.photos} photo(s)</span>
+          </div>
+          <div style="margin-top:8px;"><button class="btn btn-sm" onclick="openCrForm('${r.id}')">✎ Modifier</button></div>
+        </div>`).join('') : emptyState('🗒','Aucun compte rendu','Les comptes rendus rédigés apparaîtront ici.')}
+      </div>
+    </div>
+  `);
+}
+function openCrForm(rdvId){
+  const r = DB.rdvs.find(x=>x.id===rdvId); if(!r) return;
+  const cr = r.cr || {participants:'', resume:'', decisions:'', actions:'', documents:[], photos:0};
+  openModal(`Compte rendu — ${escapeHtml(r.objet)}`, `
+    <div class="field"><label>Participants</label><input id="cr-participants" value="${escapeHtml(cr.participants)}"></div>
+    <div class="field"><label>Résumé</label><textarea id="cr-resume">${escapeHtml(cr.resume)}</textarea></div>
+    <div class="field"><label>Décisions prises</label><textarea id="cr-decisions">${escapeHtml(cr.decisions)}</textarea></div>
+    <div class="field"><label>Actions à réaliser</label><textarea id="cr-actions">${escapeHtml(cr.actions)}</textarea></div>
+    <div class="row2">
+      <div class="field"><label>Documents joints (nombre)</label><input type="number" min="0" id="cr-docs" value="${cr.documents.length}"></div>
+      <div class="field"><label>Photos (nombre)</label><input type="number" min="0" id="cr-photos" value="${cr.photos}"></div>
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-primary" onclick="saveCr('${rdvId}')">Enregistrer le compte rendu</button>
+  `);
+}
+async function saveCr(rdvId){
+  const r = DB.rdvs.find(x=>x.id===rdvId);
+  const nDocs = parseInt(fval('cr-docs')||'0');
+  r.cr = {
+    participants: fval('cr-participants'), resume: fval('cr-resume'), decisions: fval('cr-decisions'), actions: fval('cr-actions'),
+    documents: Array.from({length:nDocs}, (_,i)=>`Document ${i+1}`), photos: parseInt(fval('cr-photos')||'0'),
+  };
+  r.statut = 'realise';
+  log(`Compte rendu enregistré : ${r.objet}`);
+  closeModal(); await persistAndRender('Compte rendu enregistré');
+}
+
+/* ================================================================
+   MODULE 3 — MISSIONS
+   ================================================================ */
+function viewMissions(){
+  if(!VIEWSTATE.missionView) VIEWSTATE.missionView = 'kanban';
+  setTopbarActions(`
+    <div class="tabs" style="margin:0; border:none;">
+      <div class="tab ${VIEWSTATE.missionView==='kanban'?'active':''}" onclick="VIEWSTATE.missionView='kanban'; render();">Tableau</div>
+      <div class="tab ${VIEWSTATE.missionView==='liste'?'active':''}" onclick="VIEWSTATE.missionView='liste'; render();">Liste</div>
+    </div>
+    <button class="btn btn-primary" onclick="openMissionForm()">+ Nouvelle mission</button>
+  `);
+  if(VIEWSTATE.missionView==='kanban'){
+    const cols = [['a_faire','À faire'],['en_cours','En cours'],['termine','Terminé'],['reporte','Reporté']];
+    setContent(`<div class="kanban">${cols.map(([key,label])=>{
+      const items = DB.missions.filter(m=>m.statut===key);
+      return `<div class="kcol"><h4>${label} · ${items.length}</h4>${items.map(m=>{
+        const late = daysBetween(m.dateLimite)<0 && m.statut!=='termine';
+        return `<div class="kcard" onclick="openMissionForm('${m.id}')">
+          <div class="t">${escapeHtml(m.titre)}</div>
+          <div class="m"><span>${pillPriorite(m.priorite)}</span><span class="mono" style="color:${late?'var(--brick)':'var(--ink-soft)'}">${fmtDate(m.dateLimite)}</span></div>
+          <div style="font-size:11px;color:var(--ink-soft);margin-top:4px;">${escapeHtml(m.responsable)}</div>
+        </div>`;
+      }).join('') || '<div style="font-size:12px;color:var(--ink-soft);padding:8px;">Vide</div>'}</div>`;
+    }).join('')}</div>`);
+  } else {
+    setContent(`<div class="panel"><div class="panel-body">
+      <table><thead><tr><th>Titre</th><th>Responsable</th><th>Priorité</th><th>Échéance</th><th>Statut</th><th></th></tr></thead>
+      <tbody>${DB.missions.map(m=>`
+        <tr class="row-hover"><td><b>${escapeHtml(m.titre)}</b>${m.description?`<br><span style="font-size:12px;color:var(--ink-soft);">${escapeHtml(m.description)}</span>`:''}</td>
+        <td>${escapeHtml(m.responsable)}</td><td>${pillPriorite(m.priorite)}</td>
+        <td class="mono" style="${daysBetween(m.dateLimite)<0&&m.statut!=='termine'?'color:var(--brick);font-weight:600;':''}">${fmtDate(m.dateLimite)}</td>
+        <td>${pillMission(m.statut)}</td>
+        <td style="text-align:right; white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="openMissionForm('${m.id}')">✎</button><button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMission('${m.id}')">🗑</button></td></tr>
+      `).join('') || `<tr><td colspan="6">${emptyState('🗂','Aucune mission','Créez votre première mission.')}</td></tr>`}</tbody></table>
+    </div></div>`);
+  }
+}
+function openMissionForm(id){
+  const m = id ? DB.missions.find(x=>x.id===id) : null;
+  openModal(m?'Modifier la mission':'Nouvelle mission', `
+    <div class="field"><label>Titre</label><input id="f-titre" value="${escapeHtml(m?.titre||'')}"></div>
+    <div class="field"><label>Description</label><textarea id="f-desc">${escapeHtml(m?.description||'')}</textarea></div>
+    <div class="row3">
+      <div class="field"><label>Priorité</label><select id="f-priorite">
+        ${['haute','moyenne','basse'].map(p=>`<option value="${p}" ${m?.priorite===p?'selected':''}>${p[0].toUpperCase()+p.slice(1)}</option>`).join('')}
+      </select></div>
+      <div class="field"><label>Date limite</label><input type="date" id="f-datelimite" value="${m?m.dateLimite:todayISO()}"></div>
+      <div class="field"><label>Statut</label><select id="f-statut">
+        ${[['a_faire','À faire'],['en_cours','En cours'],['termine','Terminé'],['reporte','Reporté']].map(([v,l])=>`<option value="${v}" ${m?.statut===v?'selected':''}>${l}</option>`).join('')}
+      </select></div>
+    </div>
+    <div class="field"><label>Responsable</label><select id="f-resp">
+      ${DB.users.map(u=>`<option ${m?.responsable===u.nom?'selected':''}>${escapeHtml(u.nom)}</option>`).join('')}
+    </select></div>
+  `, `
+    <button class="btn" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-primary" onclick="saveMission('${id||''}')">Enregistrer</button>
+  `);
+}
+async function saveMission(id){
+  const data = {titre:fval('f-titre'), description:fval('f-desc'), priorite:fval('f-priorite'), dateLimite:fval('f-datelimite'), statut:fval('f-statut'), responsable:fval('f-resp')};
+  if(!data.titre){ toast('Le titre est requis'); return; }
+  if(id){ Object.assign(DB.missions.find(m=>m.id===id), data); log(`Mission modifiée : ${data.titre}`); }
+  else { DB.missions.push({id:uid(), source:'manuel', ...data}); log(`Mission créée : ${data.titre}`); }
+  closeModal(); await persistAndRender('Mission enregistrée');
+}
+async function deleteMission(id){
+  const m = DB.missions.find(x=>x.id===id);
+  DB.missions = DB.missions.filter(x=>x.id!==id);
+  log(`Mission supprimée : ${m?.titre||''}`);
+  await persistAndRender('Mission supprimée');
+}
+
+/* ================================================================
+   MODULE 4 — CONTRÔLE MÉNAGE
+   ================================================================ */
+// Zones de contrôle ménage — configurables via le module Paramètres (DB.config.zonesMenage)
+function viewMenage(){
+  setTopbarActions(`<button class="btn" onclick="exportCSV('controle_menage.csv', [['Date','Zone','État','Observation','Agent'], ...DB.controlesMenage.map(c=>[fmtDate(c.date),c.zone,c.etat,c.observation,c.agent])])">⇩ Export</button>`);
+  const t = todayISO();
+  setContent(`
+    <div class="panel-head" style="padding:0 0 12px 0; border:none;"><h3 style="font-size:14px;">Contrôle du jour — ${fmtDate(t)}</h3></div>
+    <div class="zone-grid" style="margin-bottom:26px;">
+      ${DB.config.zonesMenage.map(z=>{
+        const c = DB.controlesMenage.find(x=>x.zone===z && x.date===t);
+        return `<div class="zone-card">
+          <h4>${z}</h4>
+          <div class="seg">
+            <button class="${c?.etat==='conforme'?'on-ok':''}" onclick="setMenage('${z}','conforme')">Conforme</button>
+            <button class="${c?.etat==='non_conforme'?'on-bad':''}" onclick="setMenage('${z}','non_conforme')">Non conforme</button>
+          </div>
+          <input placeholder="Observation…" value="${escapeHtml(c?.observation||'')}" onchange="updateMenageObs('${z}', this.value)" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12px; margin-bottom:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:11px; color:var(--ink-soft);">${c?'📷 '+c.photos+' photo(s)':'Non contrôlé'}</span>
+            ${c?`<button class="btn btn-ghost btn-sm" onclick="addPhotoMenage('${z}')">+ Photo</button>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Historique complet</h3></div>
+      <div class="panel-body">
+        <table><thead><tr><th>Date</th><th>Zone</th><th>État</th><th>Observation</th><th>Agent</th><th></th></tr></thead>
+        <tbody>${DB.controlesMenage.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(c=>`
+          <tr class="row-hover"><td class="mono">${fmtDate(c.date)}</td><td>${c.zone}</td><td>${pillEtatMenage(c.etat)}</td><td>${escapeHtml(c.observation)||'—'}</td><td>${escapeHtml(c.agent)}</td>
+          <td style="text-align:right; white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="openMenageEntryForm('${c.id}')">✎</button><button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMenageEntry('${c.id}')">🗑</button></td></tr>
+        `).join('') || `<tr><td colspan="6">${emptyState('🧹','Aucun historique','Les contrôles effectués apparaîtront ici.')}</td></tr>`}</tbody></table>
+      </div>
+    </div>
+  `);
+}
+async function setMenage(zone, etat){
+  const t = todayISO();
+  let c = DB.controlesMenage.find(x=>x.zone===zone && x.date===t);
+  if(!c){ c = {id:uid(), date:t, zone, etat, observation:'', photos:0, agent: currentUser().nom}; DB.controlesMenage.push(c); }
+  else c.etat = etat;
+  log(`Contrôle ménage — ${zone} : ${etat==='conforme'?'Conforme':'Non conforme'}`);
+  if(etat==='non_conforme'){
+    DB.missions.push({id:uid(), titre:`Nettoyage à refaire — ${zone}`, description:'Créée automatiquement suite à un contrôle ménage non conforme.', priorite:'moyenne', dateLimite:todayISO(), responsable:currentUser().nom, statut:'a_faire', source:'controle'});
+  }
+  await persistAndRender();
+}
+async function updateMenageObs(zone, val){
+  const t = todayISO();
+  let c = DB.controlesMenage.find(x=>x.zone===zone && x.date===t);
+  if(!c){ c = {id:uid(), date:t, zone, etat:'conforme', observation:val, photos:0, agent: currentUser().nom}; DB.controlesMenage.push(c); }
+  else c.observation = val;
+  await saveDB();
+}
+async function addPhotoMenage(zone){
+  const t = todayISO();
+  const c = DB.controlesMenage.find(x=>x.zone===zone && x.date===t);
+  if(c){ c.photos++; await persistAndRender('Photo ajoutée'); }
+}
+function openMenageEntryForm(id){
+  const c = DB.controlesMenage.find(x=>x.id===id); if(!c) return;
+  openModal('Modifier le contrôle', `
+    <div class="row2">
+      <div class="field"><label>Date</label><input type="date" id="f-date" value="${c.date}"></div>
+      <div class="field"><label>Zone</label><select id="f-zone">${DB.config.zonesMenage.map(z=>`<option ${c.zone===z?'selected':''}>${z}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label>État</label><select id="f-etat"><option value="conforme" ${c.etat==='conforme'?'selected':''}>Conforme</option><option value="non_conforme" ${c.etat==='non_conforme'?'selected':''}>Non conforme</option></select></div>
+    <div class="field"><label>Observation</label><textarea id="f-obs">${escapeHtml(c.observation)}</textarea></div>
+    <div class="field"><label>Photos (nombre)</label><input type="number" min="0" id="f-photos" value="${c.photos}"></div>
+  `, `<button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveMenageEntry('${id}')">Enregistrer</button>`);
+}
+async function saveMenageEntry(id){
+  const c = DB.controlesMenage.find(x=>x.id===id);
+  Object.assign(c, {date:fval('f-date'), zone:fval('f-zone'), etat:fval('f-etat'), observation:fval('f-obs'), photos:parseInt(fval('f-photos')||'0')});
+  log(`Contrôle ménage modifié : ${c.zone} (${fmtDate(c.date)})`);
+  closeModal(); await persistAndRender('Contrôle modifié');
+}
+async function deleteMenageEntry(id){
+  const c = DB.controlesMenage.find(x=>x.id===id);
+  DB.controlesMenage = DB.controlesMenage.filter(x=>x.id!==id);
+  log(`Contrôle ménage supprimé : ${c?.zone||''} (${fmtDate(c?.date)})`);
+  await persistAndRender('Contrôle supprimé');
+}
+
+/* ================================================================
+   MODULE 5 — CONTRÔLE PARTIES COMMUNES
+   ================================================================ */
+// Éléments de contrôle parties communes — configurables via le module Paramètres (DB.config.elementsPC)
+function viewPartiesCommunes(){
+  setTopbarActions(`<button class="btn" onclick="exportCSV('controle_parties_communes.csv', [['Date','Élément','État','Observation','Agent'], ...DB.controlesPC.map(c=>[fmtDate(c.date),c.element,c.etat,c.observation,c.agent])])">⇩ Export</button>`);
+  const t = todayISO();
+  setContent(`
+    <div class="panel-head" style="padding:0 0 12px 0; border:none;"><h3 style="font-size:14px;">Contrôle du jour — ${fmtDate(t)}</h3></div>
+    <div class="zone-grid" style="margin-bottom:26px;">
+      ${DB.config.elementsPC.map(el=>{
+        const c = DB.controlesPC.find(x=>x.element===el && x.date===t);
+        return `<div class="zone-card">
+          <h4>${el}</h4>
+          <div class="seg">
+            <button class="${c?.etat==='bon'?'on-ok':''}" onclick="setPC('${el}','bon')">Bon</button>
+            <button class="${c?.etat==='a_surveiller'?'on-warn':''}" onclick="setPC('${el}','a_surveiller')">Surveiller</button>
+            <button class="${c?.etat==='defectueux'?'on-bad':''}" onclick="setPC('${el}','defectueux')">Défectueux</button>
+          </div>
+          <input placeholder="Observation…" value="${escapeHtml(c?.observation||'')}" onchange="updatePCObs('${el}', this.value)" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:12px; margin-bottom:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:11px; color:var(--ink-soft);">${c?'📷 '+c.photos+' photo(s)':'Non contrôlé'}</span>
+            ${c?`<button class="btn btn-ghost btn-sm" onclick="addPhotoPC('${el}')">+ Photo</button>`:''}
+          </div>
+          ${c?.etat==='defectueux'?`<div class="notice notice-brick" style="margin-top:8px; margin-bottom:0;">Mission corrective créée automatiquement</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Historique complet</h3></div>
+      <div class="panel-body">
+        <table><thead><tr><th>Date</th><th>Élément</th><th>État</th><th>Observation</th><th>Agent</th><th></th></tr></thead>
+        <tbody>${DB.controlesPC.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(c=>`
+          <tr class="row-hover"><td class="mono">${fmtDate(c.date)}</td><td>${c.element}</td><td>${pillEtatPC(c.etat)}</td><td>${escapeHtml(c.observation)||'—'}</td><td>${escapeHtml(c.agent)}</td>
+          <td style="text-align:right; white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="openPCEntryForm('${c.id}')">✎</button><button class="btn btn-ghost btn-sm btn-danger" onclick="deletePCEntry('${c.id}')">🗑</button></td></tr>
+        `).join('') || `<tr><td colspan="6">${emptyState('🔧','Aucun historique','Les contrôles effectués apparaîtront ici.')}</td></tr>`}</tbody></table>
+      </div>
+    </div>
+  `);
+}
+async function setPC(element, etat){
+  const t = todayISO();
+  let c = DB.controlesPC.find(x=>x.element===element && x.date===t);
+  const wasDefect = c?.etat==='defectueux';
+  if(!c){ c = {id:uid(), date:t, element, etat, observation:'', photos:0, agent: currentUser().nom}; DB.controlesPC.push(c); }
+  else c.etat = etat;
+  log(`Contrôle parties communes — ${element} : ${etat}`);
+  if(etat==='defectueux' && !wasDefect){
+    DB.missions.push({id:uid(), titre:`Intervention requise — ${element}`, description:c.observation||'Créée automatiquement suite à un contrôle non conforme.', priorite:'haute', dateLimite:todayISO(), responsable:currentUser().nom, statut:'a_faire', source:'controle'});
+    toast('Mission corrective créée automatiquement');
+  }
+  await persistAndRender();
+}
+async function updatePCObs(element, val){
+  const t = todayISO();
+  let c = DB.controlesPC.find(x=>x.element===element && x.date===t);
+  if(!c){ c = {id:uid(), date:t, element, etat:'bon', observation:val, photos:0, agent: currentUser().nom}; DB.controlesPC.push(c); }
+  else c.observation = val;
+  await saveDB();
+}
+async function addPhotoPC(element){
+  const t = todayISO();
+  const c = DB.controlesPC.find(x=>x.element===element && x.date===t);
+  if(c){ c.photos++; await persistAndRender('Photo ajoutée'); }
+}
+function openPCEntryForm(id){
+  const c = DB.controlesPC.find(x=>x.id===id); if(!c) return;
+  openModal('Modifier le contrôle', `
+    <div class="row2">
+      <div class="field"><label>Date</label><input type="date" id="f-date" value="${c.date}"></div>
+      <div class="field"><label>Élément</label><select id="f-element">${DB.config.elementsPC.map(e=>`<option ${c.element===e?'selected':''}>${e}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label>État</label><select id="f-etat"><option value="bon" ${c.etat==='bon'?'selected':''}>Bon</option><option value="a_surveiller" ${c.etat==='a_surveiller'?'selected':''}>À surveiller</option><option value="defectueux" ${c.etat==='defectueux'?'selected':''}>Défectueux</option></select></div>
+    <div class="field"><label>Observation</label><textarea id="f-obs">${escapeHtml(c.observation)}</textarea></div>
+    <div class="field"><label>Photos (nombre)</label><input type="number" min="0" id="f-photos" value="${c.photos}"></div>
+  `, `<button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="savePCEntry('${id}')">Enregistrer</button>`);
+}
+async function savePCEntry(id){
+  const c = DB.controlesPC.find(x=>x.id===id);
+  Object.assign(c, {date:fval('f-date'), element:fval('f-element'), etat:fval('f-etat'), observation:fval('f-obs'), photos:parseInt(fval('f-photos')||'0')});
+  log(`Contrôle parties communes modifié : ${c.element} (${fmtDate(c.date)})`);
+  closeModal(); await persistAndRender('Contrôle modifié');
+}
+async function deletePCEntry(id){
+  const c = DB.controlesPC.find(x=>x.id===id);
+  DB.controlesPC = DB.controlesPC.filter(x=>x.id!==id);
+  log(`Contrôle parties communes supprimé : ${c?.element||''} (${fmtDate(c?.date)})`);
+  await persistAndRender('Contrôle supprimé');
+}
+
+/* ================================================================
+   MODULE 6 — DOSSIERS
+   ================================================================ */
+// Types de dossiers — configurables via le module Paramètres (DB.config.typesDossier)
+function viewDossiers(){
+  if(!VIEWSTATE.filtreType) VIEWSTATE.filtreType = 'Tous';
+  setTopbarActions(`<button class="btn btn-primary" onclick="openDossierForm()">+ Nouveau dossier</button>`);
+  const types = ['Tous', ...DB.config.typesDossier];
+  const list = DB.dossiers.filter(d => VIEWSTATE.filtreType==='Tous' || d.type===VIEWSTATE.filtreType);
+  setContent(`
+    <div class="tabs">${types.map(t=>`<div class="tab ${VIEWSTATE.filtreType===t?'active':''}" onclick="VIEWSTATE.filtreType='${t}'; render();">${t}</div>`).join('')}</div>
+    <div class="panel"><div class="panel-body">
+      <table><thead><tr><th>Numéro</th><th>Type</th><th>Statut</th><th>Échéance</th><th>Documents</th><th></th></tr></thead>
+      <tbody>${list.length ? list.map(d=>`
+        <tr class="row-hover"><td class="mono">${d.numero}</td><td>${d.type}</td><td>${pillDossier(d.statut)}</td>
+        <td class="mono" style="${d.statut!=='cloture'&&daysBetween(d.echeance)<=3?'color:var(--brick);font-weight:600;':''}">${fmtDate(d.echeance)}</td>
+        <td>${d.documents}</td>
+        <td style="text-align:right; white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="openDossierDetail('${d.id}')">Ouvrir</button><button class="btn btn-ghost btn-sm btn-danger" onclick="deleteDossier('${d.id}')">🗑</button></td></tr>
+      `).join('') : `<tr><td colspan="6">${emptyState('📁','Aucun dossier','Créez un dossier pour suivre une réclamation, un chantier ou un sinistre.')}</td></tr>`}</tbody></table>
+    </div></div>
+  `);
+}
+function openDossierForm(id){
+  const d = id ? DB.dossiers.find(x=>x.id===id) : null;
+  openModal(d?'Modifier le dossier':'Nouveau dossier', `
+    <div class="row2">
+      <div class="field"><label>Numéro</label><input id="f-numero" value="${escapeHtml(d?.numero || 'DOS-'+new Date().getFullYear()+'-'+String(DB.dossiers.length+1).padStart(3,'0'))}"></div>
+      <div class="field"><label>Type</label><select id="f-type">${DB.config.typesDossier.map(t=>`<option ${d?.type===t?'selected':''}>${t}</option>`).join('')}</select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Statut</label><select id="f-statut">${[['ouvert','Ouvert'],['en_cours','En cours'],['cloture','Clôturé']].map(([v,l])=>`<option value="${v}" ${d?.statut===v?'selected':''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label>Échéance</label><input type="date" id="f-echeance" value="${d?d.echeance:todayISO()}"></div>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="f-notes">${escapeHtml(d?.notes||'')}</textarea></div>
+  `, `<button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveDossier('${id||''}')">Enregistrer</button>`);
+}
+async function saveDossier(id){
+  const data = {numero:fval('f-numero'), type:fval('f-type'), statut:fval('f-statut'), echeance:fval('f-echeance'), notes:fval('f-notes')};
+  if(id){ Object.assign(DB.dossiers.find(d=>d.id===id), data); log(`Dossier modifié : ${data.numero}`); }
+  else { DB.dossiers.push({id:uid(), documents:0, historique:[{date:todayISO(), texte:'Ouverture du dossier'}], ...data}); log(`Dossier créé : ${data.numero}`); }
+  closeModal(); await persistAndRender('Dossier enregistré');
+}
+async function deleteDossier(id){
+  const d = DB.dossiers.find(x=>x.id===id);
+  DB.dossiers = DB.dossiers.filter(x=>x.id!==id);
+  log(`Dossier supprimé : ${d?.numero||''}`);
+  await persistAndRender('Dossier supprimé');
+}
+function openDossierDetail(id){
+  const d = DB.dossiers.find(x=>x.id===id); if(!d) return;
+  openModal(`${d.numero} — ${d.type}`, `
+    <div style="margin-bottom:10px;">${pillDossier(d.statut)} <span class="mono" style="font-size:12px;color:var(--ink-soft);">Échéance ${fmtDate(d.echeance)}</span></div>
+    <div class="field"><label>Notes</label><div style="font-size:13.5px;">${escapeHtml(d.notes)||'—'}</div></div>
+    <div class="field"><label>Historique</label>
+      ${d.historique.map(h=>`<div style="font-size:12.5px; padding:6px 0; border-bottom:1px solid #F0EEE7;"><span class="mono" style="color:var(--ink-soft);">${fmtDate(h.date)}</span> — ${escapeHtml(h.texte)}</div>`).join('')}
+    </div>
+    <div class="field"><label>Ajouter un événement</label>
+      <div style="display:flex; gap:8px;"><input id="hist-txt" placeholder="Ex : Devis reçu du prestataire" style="flex:1;"><button class="btn btn-sm" onclick="addHistorique('${d.id}')">Ajouter</button></div>
+    </div>
+  `, `<button class="btn" onclick="closeModal()">Fermer</button><button class="btn btn-primary" onclick="closeModal(); openDossierForm('${d.id}')">✎ Modifier</button>`);
+}
+async function addHistorique(id){
+  const txt = fval('hist-txt'); if(!txt) return;
+  const d = DB.dossiers.find(x=>x.id===id);
+  d.historique.push({date:todayISO(), texte:txt});
+  log(`Événement ajouté au dossier ${d.numero}`);
+  closeModal(); await persistAndRender('Historique mis à jour');
+}
+
+/* ================================================================
+   MODULE 7 — NOTES
+   ================================================================ */
+function viewNotes(){
+  if(!VIEWSTATE.noteFilter) VIEWSTATE.noteFilter = '';
+  if(!VIEWSTATE.showArchived) VIEWSTATE.showArchived = false;
+  setTopbarActions(`<button class="btn btn-primary" onclick="openNoteForm()">+ Nouvelle note</button>`);
+  const q = VIEWSTATE.noteFilter.toLowerCase();
+  const list = DB.notes.filter(n => (VIEWSTATE.showArchived ? n.archived : !n.archived) && (n.titre.toLowerCase().includes(q) || n.contenu.toLowerCase().includes(q) || n.categorie.toLowerCase().includes(q)));
+  const cats = [...new Set(DB.notes.map(n=>n.categorie))];
+  setContent(`
+    <div class="searchbar">
+      <input placeholder="Rechercher une note…" value="${escapeHtml(VIEWSTATE.noteFilter)}" oninput="VIEWSTATE.noteFilter=this.value; renderNotesList();">
+      <button class="btn ${VIEWSTATE.showArchived?'btn-primary':''}" onclick="VIEWSTATE.showArchived=!VIEWSTATE.showArchived; render();">${VIEWSTATE.showArchived?'📂 Archivées':'🗄 Voir les archives'}</button>
+    </div>
+    <div id="notes-list" class="grid-cards"></div>
+  `);
+  renderNotesList();
+}
+function renderNotesList(){
+  const q = VIEWSTATE.noteFilter.toLowerCase();
+  const list = DB.notes.filter(n => (VIEWSTATE.showArchived ? n.archived : !n.archived) && (n.titre.toLowerCase().includes(q) || n.contenu.toLowerCase().includes(q) || n.categorie.toLowerCase().includes(q)));
+  const el = document.getElementById('notes-list'); if(!el) return;
+  el.innerHTML = list.length ? list.map(n=>`
+    <div class="stat-card" style="cursor:pointer;" onclick="openNoteForm('${n.id}')">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <b style="font-size:14px;">${escapeHtml(n.titre)}</b>
+        <span class="chip">${escapeHtml(n.categorie)}</span>
+      </div>
+      <div style="font-size:13px; color:var(--ink-soft); margin:8px 0; line-height:1.5;">${escapeHtml(n.contenu.slice(0,110))}${n.contenu.length>110?'…':''}</div>
+      <div class="mono" style="font-size:11px; color:var(--ink-soft);">${fmtDate(n.date)}</div>
+    </div>
+  `).join('') : `<div style="grid-column:1/-1;">${emptyState('🗒','Aucune note','Ajoutez vos pense-bêtes et informations utiles ici.')}</div>`;
+}
+function openNoteForm(id){
+  const n = id ? DB.notes.find(x=>x.id===id) : null;
+  openModal(n?'Modifier la note':'Nouvelle note', `
+    <div class="field"><label>Titre</label><input id="f-titre" value="${escapeHtml(n?.titre||'')}"></div>
+    <div class="field"><label>Catégorie</label><input id="f-cat" list="cats" value="${escapeHtml(n?.categorie||'Général')}"><datalist id="cats">${[...new Set([...DB.config.categoriesNotes, ...DB.notes.map(x=>x.categorie)])].map(c=>`<option value="${escapeHtml(c)}">`).join('')}</datalist></div>
+    <div class="field"><label>Contenu</label><textarea id="f-contenu" style="min-height:110px;">${escapeHtml(n?.contenu||'')}</textarea></div>
+  `, `
+    ${n?`<button class="btn btn-danger" style="margin-right:auto;" onclick="archiveNote('${id}')">${n.archived?'Désarchiver':'🗄 Archiver'}</button>`:''}
+    <button class="btn" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-primary" onclick="saveNote('${id||''}')">Enregistrer</button>
+  `);
+}
+async function saveNote(id){
+  const data = {titre:fval('f-titre'), categorie:fval('f-cat')||'Général', contenu:fval('f-contenu')};
+  if(!data.titre){ toast('Le titre est requis'); return; }
+  if(id){ Object.assign(DB.notes.find(n=>n.id===id), data); log(`Note modifiée : ${data.titre}`); }
+  else { DB.notes.push({id:uid(), date:todayISO(), archived:false, ...data}); log(`Note créée : ${data.titre}`); }
+  closeModal(); await persistAndRender('Note enregistrée');
+}
+async function archiveNote(id){
+  const n = DB.notes.find(x=>x.id===id); n.archived = !n.archived;
+  log(`Note ${n.archived?'archivée':'désarchivée'} : ${n.titre}`);
+  closeModal(); await persistAndRender();
+}
+
+/* ================================================================
+   MODULE 8 — EMAILS
+   ================================================================ */
+function viewEmails(){
+  setTopbarActions(`<button class="btn btn-primary" onclick="openEmailForm()">+ Suivre un email</button>`);
+  setContent(`
+    <div class="panel"><div class="panel-body">
+      <table><thead><tr><th>Destinataire</th><th>Objet</th><th>Envoyé le</th><th>Relances</th><th>Statut</th><th></th></tr></thead>
+      <tbody>${DB.emails.length ? DB.emails.slice().sort((a,b)=>b.dateEnvoi.localeCompare(a.dateEnvoi)).map(e=>{
+        const jours = -daysBetween(e.dateEnvoi);
+        let paliers = [];
+        DB.config.relanceJalons.forEach(p=>{ if(jours>=p && e.statut==='en_attente') paliers.push(p); });
+        const relanceDue = paliers.some(p => !e.relances.some(r=>r.type===p+' jours'));
+        return `<tr class="row-hover"><td>${escapeHtml(e.destinataire)}</td><td><b>${escapeHtml(e.objet)}</b></td>
+        <td class="mono">${fmtDate(e.dateEnvoi)} <span style="color:var(--ink-soft);">(${jours}j)</span></td>
+        <td>${e.relances.length ? e.relances.map(r=>`<span class="chip">${r.type} · ${fmtDate(r.date)}</span>`).join(' ') : '—'} ${relanceDue?`<div class="pill pill-brick" style="margin-top:4px;">Relance due</div>`:''}</td>
+        <td>${pillEmail(e.statut)}</td>
+        <td style="text-align:right; white-space:nowrap;">
+          ${e.statut==='en_attente'?`<a class="btn btn-ghost btn-sm" href="${mailtoLink(e.destinataire,'Relance : '+e.objet,'Bonjour,\\n\\nJe me permets de revenir vers vous concernant : '+e.objet+'.\\n\\nCordialement,')}" onclick="registerRelance('${e.id}')">✉ Relancer</a>`:''}
+          <button class="btn btn-ghost btn-sm" onclick="toggleEmailStatut('${e.id}')">${e.statut==='en_attente'?'✓ Résolu':'↺ Rouvrir'}</button>
+          <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteEmail('${e.id}')">🗑</button>
+        </td></tr>`;
+      }).join('') : `<tr><td colspan="6">${emptyState('✉️','Aucun email suivi','Suivez vos emails importants pour ne manquer aucune relance.')}</td></tr>`}</tbody></table>
+    </div></div>
+  `);
+}
+function openEmailForm(){
+  openModal('Suivre un nouvel email', `
+    <div class="field"><label>Destinataire</label><input id="f-dest" placeholder="nom@exemple.fr"></div>
+    <div class="field"><label>Objet</label><input id="f-objet"></div>
+    <div class="field"><label>Date d'envoi</label><input type="date" id="f-date" value="${todayISO()}"></div>
+  `, `<button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveEmail()">Enregistrer</button>`);
+}
+async function saveEmail(){
+  const data = {destinataire:fval('f-dest'), objet:fval('f-objet'), dateEnvoi:fval('f-date')};
+  if(!data.destinataire || !data.objet){ toast('Destinataire et objet requis'); return; }
+  DB.emails.push({id:uid(), statut:'en_attente', relances:[], ...data});
+  log(`Email suivi : ${data.objet}`);
+  closeModal(); await persistAndRender('Email ajouté au suivi');
+}
+async function registerRelance(id){
+  const e = DB.emails.find(x=>x.id===id);
+  const jours = -daysBetween(e.dateEnvoi);
+  const jalons = DB.config.relanceJalons.slice().sort((a,b)=>b-a);
+  const palier = jalons.find(p=>jours>=p) || jalons[jalons.length-1];
+  let type = palier+' jours';
+  if(!e.relances.some(r=>r.type===type)) e.relances.push({date:todayISO(), type});
+  log(`Relance envoyée : ${e.objet}`);
+  await saveDB(); render();
+}
+async function toggleEmailStatut(id){
+  const e = DB.emails.find(x=>x.id===id);
+  e.statut = e.statut==='en_attente' ? 'resolu' : 'en_attente';
+  log(`Email marqué ${e.statut==='resolu'?'résolu':'en attente'} : ${e.objet}`);
+  await persistAndRender();
+}
+async function deleteEmail(id){
+  const e = DB.emails.find(x=>x.id===id);
+  DB.emails = DB.emails.filter(x=>x.id!==id);
+  log(`Suivi email supprimé : ${e?.objet||''}`);
+  await persistAndRender('Supprimé');
+}
+
+/* ================================================================
+   MODULE 9 — DOCUMENTS
+   ================================================================ */
+function viewDocuments(){
+  setTopbarActions(`<button class="btn btn-primary" onclick="openDocForm()">+ Ajouter un document</button>`);
+  const byDossier = {};
+  DB.documents.forEach(d=>{ (byDossier[d.dossier] = byDossier[d.dossier]||[]).push(d); });
+  const icoFor = t => ({PDF:'📕',Word:'📘',Excel:'📗',Photo:'🖼'}[t]||'📄');
+  setContent(Object.keys(byDossier).length ? Object.entries(byDossier).map(([dossier, docs])=>`
+    <div class="panel">
+      <div class="panel-head"><h3>${escapeHtml(dossier)}</h3><span class="chip">${docs.length} fichier(s)</span></div>
+      <div class="panel-body">${docs.map(d=>`
+        <div class="doc-row">
+          <div class="doc-ico">${icoFor(d.type)}</div>
+          <div style="flex:1;"><b style="font-size:13.5px;">${escapeHtml(d.nom)}</b><div style="font-size:11.5px; color:var(--ink-soft);">${d.type} · ajouté le ${fmtDate(d.date)}</div></div>
+          <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteDoc('${d.id}')">🗑</button>
+        </div>
+      `).join('')}</div>
+    </div>
+  `).join('') : emptyState('🗄','Aucun document','Ajoutez vos fichiers PDF, Word, Excel et photos pour les classer par dossier.'));
+}
+function openDocForm(){
+  openModal('Ajouter un document', `
+    <div class="field"><label>Nom du fichier</label><input id="f-nom" placeholder="Ex : Devis_Toiture.pdf"></div>
+    <div class="row2">
+      <div class="field"><label>Type</label><select id="f-type">${['PDF','Word','Excel','Photo'].map(t=>`<option>${t}</option>`).join('')}</select></div>
+      <div class="field"><label>Dossier / catégorie</label><input id="f-dossier" list="doss" value="Général"><datalist id="doss">${[...DB.config.typesDossier,'Général'].map(t=>`<option value="${t}">`).join('')}</datalist></div>
+    </div>
+    <div class="notice notice-amber">Le téléversement de fichiers réels n'est pas disponible dans cette démonstration : seule la fiche descriptive est enregistrée.</div>
+  `, `<button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveDoc()">Enregistrer</button>`);
+}
+async function saveDoc(){
+  const data = {nom:fval('f-nom'), type:fval('f-type'), dossier:fval('f-dossier')||'Général'};
+  if(!data.nom){ toast('Le nom est requis'); return; }
+  DB.documents.push({id:uid(), date:todayISO(), ...data});
+  log(`Document ajouté : ${data.nom}`);
+  closeModal(); await persistAndRender('Document ajouté');
+}
+async function deleteDoc(id){
+  const d = DB.documents.find(x=>x.id===id);
+  DB.documents = DB.documents.filter(x=>x.id!==id);
+  log(`Document supprimé : ${d?.nom||''}`);
+  await persistAndRender('Document supprimé');
+}
+
+/* ================================================================
+   MODULE 10 — STATISTIQUES
+   ================================================================ */
+function viewStatistiques(){
+  setTopbarActions(`<button class="btn" onclick="exportStatsCSV()">⇩ Export Excel/CSV</button> <button class="btn" onclick="printPage()">🖨 Imprimer</button>`);
+  const controlesEffectues = DB.controlesMenage.length + DB.controlesPC.length;
+  const missionsTerminees = DB.missions.filter(m=>m.statut==='termine').length;
+  const dossiersOuverts = DB.dossiers.filter(d=>d.statut!=='cloture').length;
+  const dossiersClotures = DB.dossiers.filter(d=>d.statut==='cloture').length;
+  const retards = DB.missions.filter(m=>m.statut!=='termine' && daysBetween(m.dateLimite)<0).length + DB.dossiers.filter(d=>d.statut!=='cloture' && daysBetween(d.echeance)<0).length;
+  const relances = DB.emails.reduce((a,e)=>a+e.relances.length,0);
+  const nonConformeMenage = DB.controlesMenage.filter(c=>c.etat==='non_conforme').length;
+  const defectueuxPC = DB.controlesPC.filter(c=>c.etat==='defectueux').length;
+
+  setContent(`
+    <div class="grid-cards">
+      <div class="stat-card slate"><div class="n">${controlesEffectues}</div><div class="l">Contrôles effectués</div></div>
+      <div class="stat-card green"><div class="n">${missionsTerminees}</div><div class="l">Missions terminées</div></div>
+      <div class="stat-card brick"><div class="n">${dossiersOuverts}</div><div class="l">Dossiers ouverts</div></div>
+      <div class="stat-card green"><div class="n">${dossiersClotures}</div><div class="l">Dossiers clôturés</div></div>
+      <div class="stat-card brick"><div class="n">${retards}</div><div class="l">Retards</div></div>
+      <div class="stat-card amber"><div class="n">${relances}</div><div class="l">Relances emails envoyées</div></div>
+    </div>
+    <div class="row2">
+      <div class="panel"><div class="panel-head"><h3>Répartition des missions</h3></div><div class="panel-body pad">${barChart([
+        ['À faire', DB.missions.filter(m=>m.statut==='a_faire').length, 'var(--slate)'],
+        ['En cours', DB.missions.filter(m=>m.statut==='en_cours').length, 'var(--amber)'],
+        ['Terminé', missionsTerminees, 'var(--green)'],
+        ['Reporté', DB.missions.filter(m=>m.statut==='reporte').length, 'var(--brick)'],
+      ])}</div></div>
+      <div class="panel"><div class="panel-head"><h3>Qualité des contrôles</h3></div><div class="panel-body pad">${barChart([
+        ['Ménage conforme', DB.controlesMenage.length-nonConformeMenage, 'var(--green)'],
+        ['Ménage non conforme', nonConformeMenage, 'var(--brick)'],
+        ['Parties communes bon', DB.controlesPC.filter(c=>c.etat==='bon').length, 'var(--green)'],
+        ['Parties communes défectueux', defectueuxPC, 'var(--brick)'],
+      ])}</div></div>
+    </div>
+  `);
+}
+function barChart(rows){
+  const max = Math.max(1, ...rows.map(r=>r[1]));
+  return rows.map(([label,val,color])=>`
+    <div style="margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:4px;"><span>${label}</span><b class="mono">${val}</b></div>
+      <div style="background:#F0EEE7; border-radius:6px; height:9px; overflow:hidden;"><div style="width:${(val/max*100)}%; background:${color}; height:100%; border-radius:6px;"></div></div>
+    </div>`).join('');
+}
+function exportStatsCSV(){
+  exportCSV('statistiques.csv', [
+    ['Indicateur','Valeur'],
+    ['Contrôles effectués', DB.controlesMenage.length + DB.controlesPC.length],
+    ['Missions terminées', DB.missions.filter(m=>m.statut==='termine').length],
+    ['Dossiers ouverts', DB.dossiers.filter(d=>d.statut!=='cloture').length],
+    ['Dossiers clôturés', DB.dossiers.filter(d=>d.statut==='cloture').length],
+    ['Relances emails', DB.emails.reduce((a,e)=>a+e.relances.length,0)],
+  ]);
+}
+
+/* ================================================================
+   MODULE 11 — JOURNAL DES ACTIONS (sécurité)
+   ================================================================ */
+function viewJournal(){
+  if(!isAdmin()){ setContent(emptyState('🔒','Accès réservé','Ce module est réservé aux administrateurs.')); return; }
+  setTopbarActions(`<button class="btn" onclick="exportCSV('journal_actions.csv', [['Date','Utilisateur','Action'], ...DB.journal.map(j=>[fmtDateTime(j.date),j.user,j.texte])])">⇩ Export</button>`);
+  setContent(`
+    <div class="notice notice-amber">🔐 Connexion sécurisée active · Sauvegarde automatique activée · Ce journal trace les actions effectuées dans l'application.</div>
+    <div class="panel"><div class="panel-body">
+      <table><thead><tr><th>Horodatage</th><th>Utilisateur</th><th>Action</th></tr></thead>
+      <tbody>${DB.journal.map(j=>`<tr class="row-hover"><td class="mono">${fmtDateTime(j.date)}</td><td>${escapeHtml(j.user)}</td><td>${escapeHtml(j.texte)}</td></tr>`).join('')}</tbody></table>
+    </div></div>
+  `);
+}
+
+/* ================================================================
+   MODULE 12 — UTILISATEURS
+   ================================================================ */
+function viewUtilisateurs(){
+  if(!isAdmin()){ setContent(emptyState('🔒','Accès réservé','Ce module est réservé aux administrateurs.')); return; }
+  setTopbarActions(`<button class="btn btn-primary" onclick="openUserForm()">+ Nouvel utilisateur</button>`);
+  setContent(`
+    <div class="panel"><div class="panel-body">
+      <table><thead><tr><th>Nom</th><th>Rôle</th><th>Droits</th><th></th></tr></thead>
+      <tbody>${DB.users.map(u=>`
+        <tr class="row-hover"><td><b>${escapeHtml(u.nom)}</b></td><td>${u.role==='admin'?'<span class="pill pill-amber">Administrateur</span>':'<span class="pill pill-slate">Agent</span>'}</td>
+        <td style="font-size:12px; color:var(--ink-soft);">${u.role==='admin'?'Gestion complète, statistiques, export':'Contrôles, rendez-vous, missions, comptes rendus'}</td>
+        <td style="text-align:right; white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="openUserForm('${u.id}')">✎ Modifier</button><button class="btn btn-ghost btn-sm btn-danger" onclick="deleteUser('${u.id}')">🗑</button></td></tr>
+      `).join('')}</tbody></table>
+    </div></div>
+  `);
+}
+function openUserForm(id){
+  const u = id ? DB.users.find(x=>x.id===id) : null;
+  openModal(u?'Modifier l’utilisateur':'Nouvel utilisateur', `
+    <div class="field"><label>Nom</label><input id="f-nom" placeholder="Prénom Nom" value="${escapeHtml(u?.nom||'')}"></div>
+    <div class="field"><label>Rôle</label><select id="f-role">
+      <option value="agent" ${u?.role==='agent'?'selected':''}>Agent</option>
+      <option value="admin" ${u?.role==='admin'?'selected':''}>Administrateur</option>
+    </select></div>
+  `, `<button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveUser('${id||''}')">${u?'Enregistrer':'Créer'}</button>`);
+}
+async function saveUser(id){
+  const nom = fval('f-nom'); if(!nom){ toast('Le nom est requis'); return; }
+  const role = fval('f-role');
+  if(id){ const u = DB.users.find(x=>x.id===id); Object.assign(u, {nom, role}); log(`Utilisateur modifié : ${nom}`); }
+  else { DB.users.push({id:uid(), nom, role}); log(`Utilisateur créé : ${nom}`); }
+  closeModal(); await persistAndRender('Utilisateur enregistré');
+}
+async function deleteUser(id){
+  if(DB.users.length<=1){ toast('Impossible de supprimer le dernier utilisateur'); return; }
+  const u = DB.users.find(x=>x.id===id);
+  DB.users = DB.users.filter(x=>x.id!==id);
+  if(DB.currentUserId===id) DB.currentUserId = DB.users[0].id;
+  log(`Utilisateur supprimé : ${u?.nom||''}`);
+  await persistAndRender('Utilisateur supprimé');
+}
+
+/* ================================================================
+   MODULE 13 — PARAMÈTRES (tout modifiable)
+   ================================================================ */
+function viewParametres(){
+  if(!isAdmin()){ setContent(emptyState('🔒','Accès réservé','Ce module est réservé aux administrateurs.')); return; }
+  setTopbarActions(`<button class="btn" onclick="resetToDefaults()">↺ Réinitialiser les listes par défaut</button>`);
+  setContent(`
+    <div class="notice notice-amber">Personnalisez ici le nom de votre régie, ainsi que les zones, éléments, types et catégories utilisés dans les autres modules. Toute modification s'applique immédiatement.</div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Identité de l'application</h3></div>
+      <div class="panel-body pad">
+        <div class="row2">
+          <div class="field"><label>Nom affiché</label><input id="cfg-brandName" value="${escapeHtml(DB.config.brandName)}" onchange="updateConfigField('brandName', this.value)"></div>
+          <div class="field"><label>Sous-titre</label><input id="cfg-brandSub" value="${escapeHtml(DB.config.brandSub)}" onchange="updateConfigField('brandSub', this.value)"></div>
+        </div>
+        <div class="field"><label>Référence / repère de plan</label><input id="cfg-planRef" value="${escapeHtml(DB.config.planRef)}" onchange="updateConfigField('planRef', this.value)"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Sécurité — Code PIN</h3></div>
+      <div class="panel-body pad">
+        <div style="font-size:12.5px; color:var(--ink-soft); margin-bottom:12px;">L'application est protégée par un code PIN demandé à chaque ouverture. Vous pouvez le modifier ci-dessous.</div>
+        <div class="row2">
+          <div class="field"><label>Code PIN actuel</label><input type="password" inputmode="numeric" maxlength="8" id="cfg-pin-old" placeholder="••••"></div>
+          <div class="field"><label>Nouveau code PIN (4 à 8 chiffres)</label><input type="password" inputmode="numeric" maxlength="8" id="cfg-pin-new" placeholder="••••"></div>
+        </div>
+        <div class="field"><label>Confirmer le nouveau code</label><input type="password" inputmode="numeric" maxlength="8" id="cfg-pin-confirm" placeholder="••••"></div>
+        <button class="btn btn-amber btn-sm" onclick="changePin()">Modifier le code PIN</button>
+      </div>
+    </div>
+
+    ${configListPanel('zonesMenage', 'Zones — Contrôle ménage', 'Ex : Cave, Terrasse…')}
+    ${configListPanel('elementsPC', 'Éléments — Contrôle parties communes', 'Ex : Vidéosurveillance…')}
+    ${configListPanel('typesDossier', 'Types de dossiers', 'Ex : Assurances…')}
+    ${configListPanel('categoriesNotes', 'Catégories de notes', 'Ex : Sécurité…')}
+
+    <div class="panel">
+      <div class="panel-head"><h3>Jalons de relance des emails (en jours)</h3></div>
+      <div class="panel-body pad">
+        <div class="chip-row" style="margin-top:0;">
+          ${DB.config.relanceJalons.slice().sort((a,b)=>a-b).map(j=>`<span class="chip">${j} jours <span style="cursor:pointer; color:var(--brick); font-weight:700;" onclick="removeJalon(${j})">✕</span></span>`).join('') || '<span style="color:var(--ink-soft); font-size:12px;">Aucun jalon</span>'}
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px; max-width:260px;">
+          <input type="number" min="1" id="new-jalon" placeholder="Nombre de jours">
+          <button class="btn btn-sm" onclick="addJalon()">Ajouter</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+function configListPanel(key, label, placeholder){
+  const items = DB.config[key];
+  return `<div class="panel">
+    <div class="panel-head"><h3>${label}</h3><span class="chip">${items.length} élément(s)</span></div>
+    <div class="panel-body pad">
+      <div class="chip-row" style="margin-top:0;">
+        ${items.map((v,i)=>`<span class="chip">${escapeHtml(v)} <span style="cursor:pointer; color:var(--brick); font-weight:700;" onclick="removeConfigItem('${key}', ${i})">✕</span></span>`).join('') || '<span style="color:var(--ink-soft); font-size:12px;">Aucun élément — la liste est vide.</span>'}
+      </div>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <input id="new-${key}" placeholder="${placeholder}" style="flex:1;" onkeydown="if(event.key==='Enter'){addConfigItem('${key}');}">
+        <button class="btn btn-sm" onclick="addConfigItem('${key}')">Ajouter</button>
+      </div>
+    </div>
+  </div>`;
+}
+async function updateConfigField(field, value){
+  DB.config[field] = value;
+  log(`Paramètre modifié : ${field}`);
+  await saveDB(); render();
+}
+async function addConfigItem(key){
+  const input = document.getElementById('new-'+key);
+  const val = input.value.trim();
+  if(!val) return;
+  if(DB.config[key].some(v=>v.toLowerCase()===val.toLowerCase())){ toast('Cet élément existe déjà'); return; }
+  DB.config[key].push(val);
+  log(`Élément ajouté (${key}) : ${val}`);
+  await persistAndRender('Ajouté');
+}
+async function removeConfigItem(key, index){
+  const val = DB.config[key][index];
+  DB.config[key].splice(index,1);
+  log(`Élément supprimé (${key}) : ${val}`);
+  await persistAndRender('Supprimé');
+}
+async function addJalon(){
+  const v = parseInt(fval('new-jalon'));
+  if(!v || v<1){ toast('Indiquez un nombre de jours valide'); return; }
+  if(DB.config.relanceJalons.includes(v)){ toast('Ce jalon existe déjà'); return; }
+  DB.config.relanceJalons.push(v);
+  log(`Jalon de relance ajouté : ${v} jours`);
+  await persistAndRender('Ajouté');
+}
+async function removeJalon(v){
+  DB.config.relanceJalons = DB.config.relanceJalons.filter(x=>x!==v);
+  log(`Jalon de relance supprimé : ${v} jours`);
+  await persistAndRender('Supprimé');
+}
+async function changePin(){
+  const oldPin = fval('cfg-pin-old');
+  const newPin = fval('cfg-pin-new');
+  const confirmPin = fval('cfg-pin-confirm');
+  if(oldPin !== DB.config.pin){ toast('Code PIN actuel incorrect'); return; }
+  if(!/^[0-9]{4,8}$/.test(newPin)){ toast('Le nouveau code doit contenir 4 à 8 chiffres'); return; }
+  if(newPin !== confirmPin){ toast('Les deux codes ne correspondent pas'); return; }
+  DB.config.pin = newPin;
+  log('Code PIN modifié');
+  await persistAndRender('Code PIN modifié');
+}
+async function resetToDefaults(){
+  const d = seedData().config;
+  DB.config.zonesMenage = d.zonesMenage.slice();
+  DB.config.elementsPC = d.elementsPC.slice();
+  DB.config.typesDossier = d.typesDossier.slice();
+  DB.config.categoriesNotes = d.categoriesNotes.slice();
+  DB.config.relanceJalons = d.relanceJalons.slice();
+  log('Listes de référence réinitialisées par défaut');
+  await persistAndRender('Listes réinitialisées');
+}
+
+/* ================= ROUTER TABLE ================= */
+const VIEWS = {
+  dashboard: viewDashboard,
+  agenda: viewAgenda,
+  comptesrendus: viewComptesRendus,
+  missions: viewMissions,
+  menage: viewMenage,
+  partiescommunes: viewPartiesCommunes,
+  dossiers: viewDossiers,
+  notes: viewNotes,
+  emails: viewEmails,
+  documents: viewDocuments,
+  statistiques: viewStatistiques,
+  journal: viewJournal,
+  utilisateurs: viewUtilisateurs,
+  parametres: viewParametres,
+};
+
+/* ================================================================
+   VERROUILLAGE — CODE PIN
+   ================================================================ */
+let PIN_BUFFER = "";
+let PIN_MODE = "unlock"; // "unlock" | "setup" | "confirm-new"
+let PIN_TEMP_NEW = "";
+
+function startApp(){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('app').style.display='flex';
+  render();
+}
+
+function showLockScreen(mode){
+  PIN_MODE = mode || "unlock";
+  PIN_BUFFER = "";
+  document.getElementById('loading').style.display='none';
+  document.getElementById('app').style.display='none';
+  document.getElementById('lockscreen').style.display='flex';
+  document.getElementById('lock-plot').textContent = (DB.config.planRef||'RÉGIE');
+  const title = document.getElementById('lock-title');
+  const sub = document.getElementById('lock-sub');
+  const note = document.getElementById('lock-setup-note');
+  note.innerHTML = "";
+  if(PIN_MODE === "setup"){
+    title.textContent = escapeHtml(DB.config.brandName || 'Régie');
+    sub.textContent = "Créez votre code PIN (4 chiffres)";
+    note.innerHTML = `<div class="lock-setup-note">Première utilisation : définissez un code PIN pour protéger l'accès à l'application.</div>`;
+  } else if(PIN_MODE === "confirm-new"){
+    title.textContent = "Confirmez le code";
+    sub.textContent = "Saisissez à nouveau le nouveau code";
+  } else {
+    title.textContent = escapeHtml(DB.config.brandName || 'Régie');
+    sub.textContent = "Saisissez votre code PIN";
+  }
+  document.getElementById('lock-error').textContent = "";
+  renderPinDots();
+  renderPinKeypad();
+}
+function renderPinDots(){
+  const len = DB.config.pin ? DB.config.pin.length : 4;
+  const target = (PIN_MODE==='setup' && PIN_TEMP_NEW==='') || PIN_MODE==='setup' ? 4 : (PIN_MODE==='confirm-new' ? PIN_TEMP_NEW.length : len);
+  const count = Math.max(target, 4);
+  document.getElementById('pin-dots').innerHTML = Array.from({length:count}, (_,i)=>
+    `<div class="pin-dot ${i<PIN_BUFFER.length?'filled':''}"></div>`
+  ).join('');
+}
+function renderPinKeypad(){
+  const keys = ['1','2','3','4','5','6','7','8','9','clear','0','back'];
+  document.getElementById('pin-keypad').innerHTML = keys.map(k=>{
+    if(k==='clear') return `<button class="pin-key pin-clear" onclick="pinClear()">Effacer</button>`;
+    if(k==='back') return `<button class="pin-key pin-back" onclick="pinBackspace()">⌫</button>`;
+    return `<button class="pin-key" onclick="pinPress('${k}')">${k}</button>`;
+  }).join('');
+}
+function pinPress(digit){
+  const maxLen = PIN_MODE==='unlock' ? (DB.config.pin?DB.config.pin.length:4) : 4;
+  if(PIN_BUFFER.length >= Math.max(maxLen,4) && PIN_MODE!=='unlock') return;
+  PIN_BUFFER += digit;
+  renderPinDots();
+  const requiredLen = PIN_MODE==='unlock' ? (DB.config.pin?DB.config.pin.length:4) : 4;
+  if(PIN_BUFFER.length >= requiredLen){
+    setTimeout(()=>submitPin(), 120);
+  }
+}
+function pinBackspace(){ PIN_BUFFER = PIN_BUFFER.slice(0,-1); renderPinDots(); }
+function pinClear(){ PIN_BUFFER = ""; renderPinDots(); }
+function pinShakeError(msg){
+  document.getElementById('lock-error').textContent = msg;
+  const dots = document.getElementById('pin-dots');
+  dots.querySelectorAll('.pin-dot').forEach(d=>d.classList.add('shake'));
+  setTimeout(()=>{ PIN_BUFFER=""; renderPinDots(); }, 260);
+}
+function submitPin(){
+  if(PIN_MODE === 'unlock'){
+    if(PIN_BUFFER === DB.config.pin){
+      document.getElementById('lockscreen').style.display='none';
+      startApp();
+    } else {
+      pinShakeError("Code incorrect, réessayez");
+    }
+  } else if(PIN_MODE === 'setup'){
+    if(PIN_BUFFER.length < 4){ pinShakeError("4 chiffres minimum"); return; }
+    PIN_TEMP_NEW = PIN_BUFFER;
+    showLockScreen('confirm-new');
+  } else if(PIN_MODE === 'confirm-new'){
+    if(PIN_BUFFER === PIN_TEMP_NEW){
+      DB.config.pin = PIN_BUFFER;
+      PIN_TEMP_NEW = "";
+      saveDB();
+      document.getElementById('lockscreen').style.display='none';
+      startApp();
+      toast('Code PIN défini');
+    } else {
+      pinShakeError("Les codes ne correspondent pas");
+      PIN_TEMP_NEW = "";
+      setTimeout(()=>showLockScreen('setup'), 400);
+    }
+  }
+}
+function lockApp(){
+  showLockScreen('unlock');
+}
+
+// Permet aussi la saisie au clavier physique
+document.addEventListener('keydown', (e)=>{
+  const ls = document.getElementById('lockscreen');
+  if(!ls || ls.style.display==='none') return;
+  if(e.key>='0' && e.key<='9') pinPress(e.key);
+  else if(e.key==='Backspace') pinBackspace();
+  else if(e.key==='Escape') pinClear();
+});
+
+/* ================= INIT ================= */
+(async function init(){
+  await loadDB();
+  if(!DB.currentUserId) DB.currentUserId = DB.users[0].id;
+
+  if(!DB.config.pin){
+    showLockScreen('setup');
+  } else {
+    showLockScreen('unlock');
+  }
+
+  // re-render calendar body without full nav rebuild on internal nav clicks
+  const origGoTo = goTo;
+})();
+
+// patch renderAgendaBody label refresh after shiftCal to avoid full nav rebuild flicker
+</script>
+</body>
+</html>
